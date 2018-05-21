@@ -12,6 +12,10 @@ $colors: (
   Hover: #e5e5e5, // Used when hovering over an item
   Active: #a1c181 // Used for the active slide on the tracker
 );
+$margin-top: 50;
+$margin-right: 50;
+$margin-bottom: 30;
+$margin-left: 25;
 $tracker-colors: #5c5c5c, #424242;
 $body-background: #131313;
 $graph-background: #252525;
@@ -68,7 +72,7 @@ body {
     font-weight: bold;
     line-height: 1.5;
     @include phone {
-      font-size: 3rem;
+      font-size: 2.5rem;
     }
   }
 
@@ -170,15 +174,92 @@ body {
   // padding-top: 30vh;
   pointer-events: none;
   position: relative;
-  padding-left: 120px;
+  padding-left: 3 * $margin-left + px;
   max-width: 30rem;
   transition: 1s opacity ease-in-out;
   @include phone {
-    padding-left: 30px;
+  padding-left: $margin-left + px;
+    width: calc(100% - #{$margin-left + px} - #{$margin-right + px} - 1px);
   }
 }
 
+.footnote {
+  display: inline;
+  cursor: help;
+  text-decoration: none;
+  background-color: nth($tracker-colors, 1);
+  padding-left: 2px;
+  padding-right: 2px;
+  // margin-right: 2px;
+}
+
+.footnote span {
+  max-width: 60ch;
+  left: 0;
+  right: 0;
+  margin: 3ex auto auto;
+  z-index: -1;
+  display: none;
+  position: absolute;
+  padding: 14px 20px;
+  border-radius: 4px;
+  box-shadow: 3px 3px 5px rgba($tip-background, .8);
+  background-color: map-get($colors, Hover);
+  border: 1px solid darken(map-get($colors, Hover), 20);
+  color: $body-background;
+  font-size: small;
+  transition: all .5s ease;
+}
+
+.footnote:hover span {
+  display: inline-block;
+  z-index: 9;
+}
+
+table {
+  margin: 1em;
+  width: 80%;
+  color: #333;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+td,
+th {
+  height: 3.5ex;
+  transition: all .3s;
+}
+
+th {
+  background: #DFDFDF;
+  font-weight: bold;
+}
+
+td {
+  background: #FAFAFA;
+  text-align: center;
+}
+
+table td + td,
+th + th {
+  border-left: 10px solid map-get($colors, Hover);
+}
+
+tr:nth-child(even) td {
+  background: #F1F1F1;
+}
+
+tr:nth-child(odd) td {
+  background: #FEFEFE;
+}
+
+tr td:hover {
+  background: #666;
+  color: #FFF;
+}
+
 .step {
+  box-sizing: border-box;
   opacity: 1;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
@@ -194,7 +275,8 @@ body {
   font-weight: 500;
   // height: 33vh !important;
   // height: unset !important;
-  width: 50vw !important;
+  width: 40vw !important;
+  min-width: 60ch;
   max-width: 35rem !important;
   line-height: 1.5 !important;
   padding: 1rem !important;
@@ -205,14 +287,15 @@ body {
   -webkit-transition: opacity 1s ease-in-out;
   transition: opacity 1s ease-in-out;
   left: unset !important;
-  pointer-events: none;
+  pointer-events: all;
   @include phone {
-    width: 75vw !important;
-    font-size: .9rem;
+    width: 100% !important;
+    min-width: 85vw;
+    font-size: .8rem;
     font-weight: 500;
   }
   @include tablet {
-    width: 75vw !important;
+    width: 100% !important;
   }
 
   .mp-party-logo {
@@ -224,6 +307,22 @@ body {
 
   &.is-active {
     opacity: 1;
+  }
+
+  &.tooltip {
+    padding: 0 !important;
+    border: 0;
+    p {
+      margin: 1rem;
+    }
+  }
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: 1em;
   }
 
   .body {
@@ -257,9 +356,29 @@ body {
 
   .mp-party-logo {
     grid-area: photo;
+    padding-left: 0.25em;
     @include phone {
       opacity: 0 !important;
     }
+  }
+
+  h3 {
+    margin-top: .2em;
+    margin-bottom: .2em;
+}
+}
+
+.annotation path {
+  stroke: map-get($colors, Hover);
+  stroke-width: 2;
+}
+
+.annotation text,
+.connector-dot {
+  fill: map-get($colors, Hover);
+  font-size: 1rem;
+  @include phone {
+    font-size: .8rem;
   }
 }
 
@@ -294,109 +413,6 @@ a {
   text-decoration: none;
 }
 
-.tracker {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  position: fixed;
-  top: 20px;
-  z-index: 2;
-  height: 60px;
-  width: 150px;
-  display: none;
-  // display: flex;
-  -webkit-box-pack: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  font-size: .5em;
-
-  svg {
-    width: 60px;
-    margin: auto;
-  }
-
-  .nav-prev {
-    margin: auto;
-  }
-
-  .nav-next {
-    margin: auto;
-  }
-
-  .tracker-hexagon {
-    stroke: map-get($colors, Active);
-    stroke-width: 8px;
-    fill: none;
-  }
-
-  .arc {
-    @each $item in $tracker-colors {
-      &.c-#{index($tracker-colors, $item)} {
-        fill: $item;
-      }
-    }
-
-    &.active {
-      fill: map-get($colors, Active);
-
-      text {
-        fill: nth($tracker-colors, 1);
-      }
-    }
-
-    &.hover {
-      fill: map-get($colors, Hover);
-
-      text {
-        fill: nth($tracker-colors, 1);
-      }
-    }
-  }
-
-  text {
-    cursor: default;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    fill: map-get($colors, Green);
-    text-anchor: middle;
-    alignment-baseline: middle;
-    font-weight: bold;
-    font-size: 1.5em;
-  }
-}
-$nav-button-bg: map-get($colors, Lab);
-$nav-button-fg: lighten(map-get($colors, Hover), 50);
-
-.nav-next,
-.nav-prev {
-  -webkit-box-shadow: inset 0 34px 0 -15px $nav-button-bg;
-  box-shadow: inset 0 34px 0 -15px $nav-button-bg;
-  background-color: lighten($nav-button-bg, 3);
-  border: 1px solid darken($nav-button-bg, 30);
-  display: inline-block;
-  cursor: pointer;
-  color: $nav-button-fg;
-  font-size: .8rem;
-  font-weight: bold;
-  padding: 5px;
-  text-decoration: none;
-  text-shadow: 1px 1px 1px darken($nav-button-fg, 50);
-}
-
-.nav-next:hover,
-.nav-prev:hover {
-  background-color: lighten($nav-button-bg, 20);
-}
-
-.nav-next:active,
-.nav-prev:active {
-  position: relative;
-  top: 1px;
-}
 
 .x-axis line,
 .x-axis path,
@@ -416,30 +432,30 @@ $nav-button-fg: lighten(map-get($colors, Hover), 50);
   font-family: 'Quicksand', sans-serif;
   font-size: 1rem;
   font-weight: 500;
-  -webkit-transition: opacity 1s ease-in-out;
-  transition: opacity 1s ease-in-out;
+  -webkit-transition: opacity .5s ease-in-out;
+  transition: opacity .5s ease-in-out;
   @include phone {
-    font-size: .5rem;
+    font-size: .7rem;
   }
 }
 
 .x-custom-axis {
-  -webkit-transition: opacity 1s ease-in-out;
-  transition: opacity 1s ease-in-out;
+  -webkit-transition: opacity .5s ease-in-out;
+  transition: opacity .5s ease-in-out;
 }
 
 .x-custom-label {
-  -webkit-transition: opacity 1s ease-in-out;
-  transition: opacity 1s ease-in-out;
+  -webkit-transition: opacity .5s ease-in-out;
+  transition: opacity .5s ease-in-out;
   @include phone {
-    font-size: .5rem;
+    font-size: .7rem;
   }
 }
 
 .x-axis,
 .y-axis {
-  -webkit-transition: opacity 1s ease-in-out;
-  transition: opacity 1s ease-in-out;
+  -webkit-transition: opacity .5s ease-in-out;
+  transition: opacity .5s ease-in-out;
 }
 
 .x-label,
@@ -447,8 +463,8 @@ $nav-button-fg: lighten(map-get($colors, Hover), 50);
   text-anchor: middle;
   font-size: 1rem;
   font-weight: 500;
-  -webkit-transition: opacity 1s ease-in-out;
-  transition: opacity 1s ease-in-out;
+  -webkit-transition: opacity .5s ease-in-out;
+  transition: opacity .5s ease-in-out;
   @include phone {
     font-size: .8rem;
   }
@@ -570,11 +586,10 @@ $nav-button-fg: lighten(map-get($colors, Hover), 50);
 }
 $tip-padding: .5;
 
-#slide4,
 .tooltip {
   z-index: 99;
   opacity: 1;
-  background-color: rgba($tip-background, .8);
+  background-color: rgba($tip-background, .9);
   color: invert($tip-background);
   border: solid 1px $tip-background;
   border-radius: 5px;
@@ -593,14 +608,13 @@ $tip-padding: .5;
   left: 20%;
   top: 10%;
   @include phone {
-    width: 75vw !important;
-    font-size: .9rem;
+    // width: 75vw !important;
+    font-size: .8rem;
     line-height: 1.3;
   }
 
   .slide2-tooltip,
-  .slide3-tooltip,
-  .slide4-tooltip {
+  .slide3-tooltip {
     font-size: 1rem;
     font-weight: 200;
     text-align: center;
@@ -630,7 +644,7 @@ $tip-padding: .5;
     .gender-ratio {
       font-size: 5rem;
       @include phone {
-        font-size: 3rem;
+        font-size: 2.5rem;
       }
     }
 
@@ -662,7 +676,7 @@ $tip-padding: .5;
     font-weight: bold;
     margin-top: 0;
     margin-bottom: $tip-padding + rem;
-    padding: .5rem;
+    padding: 0.5rem;
     text-align: center;
     text-shadow: 1px 1px 1px rgba(black, .5);
     @include phone {
@@ -678,6 +692,10 @@ $tip-padding: .5;
     border: 0;
     height: 1px;
     background: invert($tip-background);
+    @include phone {
+      margin-top: $tip-padding/2 + rem;
+      margin-bottom: $tip-padding/2 + rem;
+  }
   }
   // This is for parties that don't have a logo
   .mp-party,
@@ -772,7 +790,8 @@ $tip-padding: .5;
   //   display: flex;
   // }
   .body {
-    padding: 0 !important;
+    padding: 0.5em !important;
+    padding-top: 0em !important;
     display: grid;
     grid-template-columns: 5.5rem auto;
     grid-template-areas: "photo facts";
@@ -787,171 +806,114 @@ $tip-padding: .5;
     grid-area: facts;
     align-self: center;
   }
-
-  .slide4-tooltip {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    animation: fadein 1s;
-    pointer-events: auto;
-    text-align: unset;
-    @keyframes fadein {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
-    }
-    $speech-flex-row-height: 5;
-
-    p {
-      font-size: 1rem;
-      line-height: 1.5;
-      text-align: center;
-      @include phone {
-        font-size: .7rem;
-        line-height: 1.3;
-      }
-    }
-
-    .speech-flex-row {
-      display: flex;
-      align-items: flex-start;
-      flex: 0 0 $speech-flex-row-height + rem;
-      padding-bottom: 2rem;
-
-      button {
-        margin-top: auto;
-        margin-bottom: auto;
-        width: $speech-flex-row-height + rem;
-        height: $speech-flex-row-height + rem;
-      }
-    }
-
-    .mp-image-parent {
-      margin-top: auto;
-      margin-bottom: auto;
-      flex: 0 0 $speech-flex-row-height + rem;
-    }
-
-    .mp-name-debate {
-      flex-grow: 1;
-      margin-top: auto;
-      margin-bottom: auto;
-      text-align: center;
-    }
-
-    .mp-name {
-      margin: auto;
-      font-weight: lighter;
-      font-size: 2rem;
-      padding: .5rem;
-      @include phone {
-        font-size: 1.5rem;
-        padding: unset;
-      }
-    }
-
-    .blockquote {
-      margin-left: 20px;
-      padding-left: $tip-padding * 1.5 + rem;
-      text-align: left;
-      // flex-grow: 1;
-      overflow: auto;
-      margin: auto;
-      font-family: 'Lato', sans-serif;
-      font-weight: 300;
-      // font-style: italic;
-      font-size: 1rem;
-      line-height: 1.5;
-      pointer-events: all;
-
-      &::before {
-        // top: 0;
-        // left: $tip-padding + rem;
-        font-family: Arial, sans-serif;
-        transform: translate(-20px, -40px);
-        color: #fff;
-        content: '“';
-        font-size: 4em;
-        position: absolute;
-        // text-shadow: -3px 0 #c2c2c2;
-      }
-      @include phone {
-        font-size: .7rem;
-        line-height: 1.3;
-      }
-      // &::after {
-      //   right: 16px;
-      //   color: #fff;
-      //   content: '”';
-      //   bottom: -32px;
-      //   font-size: 4em;
-      //   position: absolute;
-      //   // text-shadow: 3px 0 #c2c2c2;
-      // }
-    }
-
-    .end-quote {
-      color: #fff;
-      font-size: 4em;
-      margin-right: 0;
-    }
-
-    .speech-debate {
-      font-size: .7rem;
-      font-weight: 400;
-      padding: .5rem;
-      @include phone {
-        display: none;
-      }
-    }
-  }
-}
-
-#slide4-speech-topic-bar {
-  padding-top: $tip-padding + rem;
-  flex: 0 0 2rem;
-  margin: auto auto 0;
-}
-
-.rect-label {
-  text-transform: uppercase;
-  font-size: 1rem;
-  font-weight: 200;
-  text-shadow: 1px 1px 1px rgba(black, .5);
-  pointer-events: none;
-  @include phone {
-    font-size: .7rem;
-  }
 }
 
 #tooltip {
   position: fixed;
   left: 0;
   top: 0;
-  opacity: 0;
+        opacity: 0;
   // transform: translate(20vh, 25vh) translateZ(0);
   transition: transform .1s ease-in-out;
+  box-shadow: 1px 1px 5px rgba($tip-background, .8);
+  padding: 0;
+  border-width: 0;
+  @include phone {
+    left: $margin-left + 1 + px;
+    top: 25%;
+    margin: auto;
+    width: calc(100% - #{$margin-left + px} - #{$margin-right + px} - 1px) !important;
+    transform: none !important;
+      }
+
+  &::after {
+    border-bottom: 2px solid map-get($colors, Hover);
+    content: "";
+    padding-bottom: .5rem;
+    display: block;
+    margin: 0 auto;
+      }
+    }
+
+.slide2-tooltip, .slide3-tooltip {
+      @include phone {
+      line-height: 1.2;
+    top: 10% !important;
+      }
+    }
+
+.slide5-tooltip {
+      @include phone {
+    left: $margin-left / 2 + px !important;
+      }
+    }
+
+.slide5-search {
+  display: inline-block;
+  vertical-align: middle;
+  // text-align: center;
+  transform: translateZ(0) translateX(10vw);
+      font-size: 1rem;
+  font-weight: 200;
+  position: fixed;
+  z-index: 50;
+  transition: opacity .2s ease-in-out;
+  top: 15%;
+  left: 0;
+  right: 0;
+  // margin: 0 auto;
+  width: 50%;
+  max-width: 80ch;
+      @include phone {
+    font-size: .8rem;
+    width: 70vw;
+  }
+
+  input {
+    font-size: inherit;
+    border: 1px solid rgb(169, 169, 169);
+    background-color: $graph-background;
+    color: invert($graph-background);
+    width: 100%;
+    padding: .5em;
+    margin: 0;
+    border-radius: 3px;
+    box-sizing: border-box;
 }
 
-#slide4 {
-  width: 80%;
-  max-width: unset;
-  height: 80%;
-  top: 10%;
-  left: 10%;
-  position: fixed;
-  opacity: 0;
-  transition: opacity .5s ease-in-out;
-  @include phone {
-    width: 85% !important;
-    height: 90%;
-    top: 5%;
-    left: 5%;
+  .autocomplete-items {
+    position: absolute;
+    border: 1px solid rgb(169, 169, 169);
+    border-bottom: 0;
+    border-top: 0;
+    z-index: 99;
+    //position the autocomplete items to be the same width as the container:
+    max-height: 30vh;
+    overflow-y: auto;
+    width: 100%;
+    // margin: auto;
+    top: 100%;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+  }
+
+  .autocomplete-items div {
+    padding: .5em;
+    cursor: pointer;
+    background-color: darken($graph-background, 5);
+    border-bottom: 1px solid lighten($graph-background, 10);
+  }
+
+  .autocomplete-items div:hover {
+    // when hovering an item:
+    background-color: darken($graph-background, 10);
+  }
+
+  .autocomplete-active {
+    //when navigating through the items using the arrow keys:
+    background-color: $male !important;
+    color: invert($graph-background);
   }
 }
 
@@ -965,38 +927,39 @@ $tip-padding: .5;
   text-transform: uppercase;
   position: fixed;
   z-index: 50;
-  transition: opacity 1s ease-in-out;
-  top: 5%;
+  transition: opacity .2s ease-in-out;
+  top: 2%;
   left: 0;
   right: 0;
   margin: 0 auto;
   width: 50%;
   @include phone {
-    font-size: 1.2rem;
+    font-size: .8rem;
     width: 80%;
   }
 }
 
 .slide5-dropdown__select {
-  font-family: 'Quicksand', sans-serif;
+  font-family: 'Consolas', monospace;
   font-size: inherit;
   padding: .5em;
   margin: 0;
   background-color: $graph-background;
   color: invert($graph-background);
-  padding-right: 2.5em;
   // border: 0;
   border-radius: 3px;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+  padding-right: 2.5em;
+  @include phone {
+    padding-right: 1.5em;
+}
 }
 
 .slide5-dropdown::after {
-  content: "";
-  position: absolute;
+  position: fixed;
   pointer-events: none;
-  transform: translateX(-200%);
   content: "\25BC";
   height: 1em;
   font-size: .625em;
@@ -1004,6 +967,7 @@ $tip-padding: .5;
   top: 50%;
   margin-top: -.5em;
   color: invert($graph-background);
+  transform: translateX(-1rem);
 }
 
 .switch {
@@ -1011,11 +975,11 @@ $tip-padding: .5;
   width: 52px;
   height: 25px;
   top: 15%;
+  transform: translateZ(0);
   position: fixed;
   z-index: 6;
   opacity: 0;
-  transform: translateZ(0);
-  transition: opacity 1s ease-in-out;
+  transition: opacity .2s ease-in-out;
 }
 
 .switch input {
@@ -1026,8 +990,12 @@ $tip-padding: .5;
   width: 30vw;
   transform: translate(57px, -2px);
 }
+
 .switch div label {
     cursor: pointer;
+  @include phone {
+    font-size: small;
+}
 }
 
 .slider {
@@ -1069,15 +1037,16 @@ input:checked + .slider:before {
   transform: translateX(26px);
 }
 
+#slide3-group,
 #slide6-group {
-  transition: opacity 1s ease-in-out;
+  transition: opacity .5s ease-in-out;
 }
 
 .chart-title {
   fill: invert($graph-background);
   font-family: 'Quicksand', sans-serif;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .half-max-mps-path,
@@ -1113,26 +1082,87 @@ input:checked + .slider:before {
 
 .i5050-label,
 .men-label,
+.party-label,
 .women-label {
   font-weight: 500;
-  text-anchor: middle;
+  text-anchor: end;
+  font-size: 2.5rem;
+  @include phone {
+    font-size: 1.5rem;
+}
 }
 
 .women-label {
-  alignment-baseline: ideographic;
   fill: $male;
 }
 
-.men-label {
+.men-label,
+.party-label {
   fill: $female;
+}
+
+.party-label {
+  text-anchor: start;
 }
 
 .i5050-label {
   // alignment-baseline: ideographic;
   text-anchor: middle;
   fill: $female;
+  font-size: 2rem;
+  @include phone {
+    font-size: 1rem;
+}
 }
 
 .women-pct-track {
   stroke: steelblue;
+}
+
+.female-label, .country-label {
+  text {
+    fill: $female;
+  }
+
+  path {
+    stroke: $female;
+  }
+
+  .connector-dot, .connector-arrow {
+    // stroke: unset;
+    fill: $female;
+  }
+}
+
+.male-label {
+  text {
+    fill: $male;
+  }
+
+  path {
+    stroke: $male;
+  }
+
+  .connector-dot {
+    fill: $male;
+  }
+}
+
+.bar-label {
+  font-weight: bold;
+  fill: map-get($colors, Hover);
+  text-anchor: middle;
+  transition: opacity .5s ease-in-out;
+  @include phone {
+    font-size: 0.6rem;
+  }
+}
+
+.i2018-label {
+  animation: fadein .5s;
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }

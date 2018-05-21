@@ -1,5 +1,7 @@
 "use strict";
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 // ----------------------------------------------------------------------------
 // ██╗    ██╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗    ██╗███╗   ██╗    ██████╗  █████╗ ██████╗ ██╗     ██╗ █████╗ ███╗   ███╗███████╗███╗   ██╗████████╗
 // ██║    ██║██╔═══██╗████╗ ████║██╔════╝████╗  ██║    ██║████╗  ██║    ██╔══██╗██╔══██╗██╔══██╗██║     ██║██╔══██╗████╗ ████║██╔════╝████╗  ██║╚══██╔══╝
@@ -25,16 +27,9 @@
 //  ╚═════╝ ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝      ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝
 // ----------------------------------------------------------------------------
 
-// These are the margins for the SVG
-var margin = {
-    top: 50,
-    right: 20,
-    bottom: 30,
-    left: 70
-
-    // These are the colours used to identify each political party as well as
-    // a few additional functions
-};var colors = {
+// These are the colours used to identify each political party as well as
+// a few additional functions
+var colors = {
     "Lab": "#C61148",
     "Labour": "#C61148",
     "Con": "#0096DB",
@@ -104,11 +99,12 @@ var detachedContainer = document.createElement("custom");
 var dataContainer = d3.select(detachedContainer);
 
 var width = 0,
-    height = 0;
+    height = 0,
+    margin;
 
 var ratio, clippedArea, electionRects, zoom, wrapper, transform, zoomedArea, pointsGroup, slide2Group, slide3Group,
 // slide5Group,
-slide6Group, max_mps_line, max_mps_path, max_mps_area, max_mps_path_area, half_max_mps_line, half_max_mps_path, total_women_mps_line, total_women_mps_path, total_women_mps_area, total_women_mps_path_area, half_max_mps_line_smooth, text_path_50_50, women_in_govt_paths, mask, instance, x, y, chartTitle, xAxis, gX, xLabel, yAxis, gY, yLabel, tooltip, lineThickness, circleRadius, selected_topic, circle_male, circle_female, slide5_xScale, slide5_yScale, mp_filter, isMobile, all_mps_draw_timer;
+slide6Group, max_mps_line, max_mps_path, max_mps_area, max_mps_path_area, half_max_mps_line, half_max_mps_path, total_women_mps_line, total_women_mps_path, total_women_mps_area, total_women_mps_path_area, half_max_mps_line_smooth, text_path_50_50, women_in_govt_paths, mask, instance, x, y, chartTitle, xAxis, gX, xLabel, yAxis, gY, yLabel, tooltip, lineThickness, circleRadius, selected_topic, circle_male, circle_female, slide5_xScale, slide5_yScale, temp_nodes, mp_filter, isMobile, all_mps_draw_timer, annotate_timer;
 
 var mps_over_time_data, number_women_over_time_data, total_mps_over_time_data, women_in_govt_data, mp_base64_data, topic_medians_data, baked_positions_data, nodes_male, nodes_female;
 
@@ -204,12 +200,14 @@ function reset_zoom(callback, current_slide) {
         canvas.style("pointer-events", "auto").style("touch-action", "auto");
 
         // Add the y axis to the left of the graph
-        yAxis = d3.axisLeft(y);
+        // yAxis = d3.axisLeft(y)
         gY = d3.select(".y-axis").call(yAxis);
         if (typeof callback != "undefined") {
             callback(current_slide);
         }
     });
+
+    d3.select(".switch").select("label").text("Make it zoomable");
 }
 // ----------------------------------------------------------------------------
 // UPDATE GRAPH WHEN USER MOVES TO A NEW SLIDE
@@ -238,6 +236,9 @@ function update_state() {
         } else if (new_slide == 5) {
             // Load sixth slide
             reset_zoom(to_sixth_slide, current_slide);
+        } else if (new_slide == 6) {
+            // Load seventh slide
+            reset_zoom(to_seventh_slide, current_slide);
         } else if (current_slide != -1 & new_slide == 0) {
             // Add zoom capabilities for the points
             zoom.on("zoom", zoomed);
@@ -306,16 +307,16 @@ function initial_render() {
     gX = wrapper.append("g").attr("class", "x-axis").attr("transform", "translate(0," + height + ")").call(xAxis);
 
     // Add the y axis to the left of the graph
-    yAxis = d3.axisLeft(y);
-    gY = wrapper.append("g").attr("class", "y-axis").call(yAxis);
+    yAxis = d3.axisRight(y);
+    gY = wrapper.append("g").attr("class", "y-axis").call(yAxis).attr("transform", "translate(" + width + ", 0)");
 
     // Add chart title
     chartTitle = svg.append("text").attr("x", width / 2 + margin.left).attr("y", margin.top / 2).style("text-anchor", "middle").attr("class", "chart-title").text("");
 
     // Add axes labels
-    xLabel = svg.append("text").attr("transform", "translate(" + (width + margin.left + margin.right) / 2 + " ," + (height + margin.top + margin.bottom) + ")").attr("class", "x-label").style("text-anchor", "middle").text("Time");
+    xLabel = svg.append("text").attr("transform", "translate(" + (width + margin.left + margin.right) / 2 + " ," + (height + margin.top + margin.bottom * 1.3) + ")").attr("class", "x-label").style("text-anchor", "middle").text("Year");
 
-    yLabel = svg.append("text").attr("transform", "rotate(-90)").attr("y", margin.left / 3).attr("x", 0 - (height + margin.top + margin.bottom) / 2).attr("class", "y-label").text("Number of Women MPs");
+    yLabel = svg.append("text").attr("transform", "rotate(-90)").attr("y", width + margin.left + margin.right * 3 / 4).attr("x", 0 - (height + margin.top + margin.bottom) / 2).attr("class", "y-label").attr("dominant-baseline", "baseline").text("Number of Female MPs");
 
     // Add zoom capabilities for the points
     zoom = d3.zoom().scaleExtent([0.95, 40]).on("zoom", zoomed);
@@ -475,15 +476,6 @@ function first_slide() {
             // and(2) map the colour to the node in the colourToNode-map.
             return d.hiddenCol;
         });
-        // .transition()
-        // .delay((d, i) => 500 + i * 2)
-        // .duration(1000)
-        // .attr("y1", (d) => y(d.stream))
-        // .attr("y2", (d) => y(d.stream))
-        // .transition()
-        // .delay((d, i) => 200 + i * 2)
-        // .duration(1000)
-        // .attr("x2", (d) => x(d.term_end) - lineThickness * 1.2)
     } else {
         dataContainer.selectAll("custom.line").attr("x1", function (d) {
             return x(d.term_start);
@@ -518,6 +510,7 @@ function first_slide() {
             context.beginPath();
             context.lineWidth = hidden ? lineThickness * 1.3 : lineThickness;
             context.strokeStyle = hidden ? node.attr("hiddenStrokeStyle") : node.attr("strokeStyle");
+            // Different thickness and shape for hidden layer
             if (!hidden) {
                 context.lineCap = "round";
                 context.moveTo(node.attr("x1"), node.attr("y1"));
@@ -587,8 +580,25 @@ function show_mp_tooltip(nodeData, mousePos) {
             mousePos = [width / 2, 0];
         }
     }
+
+    // Interrupt previous transition
+    d3.select("#tooltip").interrupt();
+    // Hide tooltip on scroll but wait for window to settle first
+    d3.timeout(function () {
+        window.addEventListener("scroll", function () {
+            d3.select("#tooltip").style("opacity", 0);
+            // Get rid of annotation line too
+            d3.selectAll(".annotation-group").remove();
+        }, { once: true });
+    }, 1000);
+    // Hide tooltip after 5 secs
+    d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
+        // Get rid of annotation line too
+        d3.selectAll(".annotation-group").remove();
+    });
+
     // Display tooltip
-    d3.select("#tooltip").style("opacity", 1).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left / 2) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
+    d3.select("#tooltip").style("opacity", 1).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight * 2 - 20, height + tooltip.offsetHeight * 2 - 20), margin.top) + "px)").style("pointer-events", "none");
 
     var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1;
     var tooltip_innerHTML = "\n                    <h1 style=\"background-color: " + colorParty(nodeData.party) + ";\">" + nodeData.name + "</h1>\n                    <div class=\"body\">\n                <div class=\"mp-image-parent\">";
@@ -615,6 +625,37 @@ function show_mp_tooltip(nodeData, mousePos) {
     }).attr("y2", function (d) {
         return y(d.stream);
     }).style("stroke-width", lineThickness).style("opacity", 1);
+
+    d3.timeout(function () {
+        // Point to MP
+        var tooltip_pos = tooltip.getBoundingClientRect();
+        // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+        //     width - tooltip.offsetWidth - margin.right),
+        // 0 + margin.left), width: tooltip.offsetWidth, bottom: Math.max(Math.min(mousePos[1] - 20,
+        //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
+        var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
+
+        d3.selectAll(".annotation-group").remove();
+
+        var makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations([{
+            note: {
+                title: "...."
+            },
+            connector: {
+                end: "dot"
+            },
+            //can use x, y directly instead of data
+            x: line_pos.x + line_pos.width / 2,
+            y: line_pos.y + line_pos.height / 2,
+            dx: tooltip_pos.x + tooltip_pos.width / 2 - line_pos.x,
+            dy: tooltip_pos.bottom - line_pos.y - 3
+        }]);
+
+        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+
+        // Hide label because we are using tooltip instead
+        mouseover_svg.selectAll(".annotation-group text").style("opacity", 0);
+    }, 300);
 }
 
 // ----------------------------------------------------------------------------
@@ -637,19 +678,27 @@ function to_first_slide(current_slide) {
             // Fade all objects belonging to second and third slides
             t0.select("#slide2-group").style("opacity", 0).remove();
             t0.select("#slide3-group").style("opacity", 0).remove();
+            d3.select("#tooltip").classed("slide3-tooltip", false).classed("slide5-tooltip", false);
+
             break;
     }
 
     // Hide tooltip
     d3.select("#tooltip").style("opacity", 0);
+    // Get rid of annotation line too
+    d3.selectAll(".annotation-group").remove();
 
     // Show canvas
     d3.select("#visible-canvas").style("opacity", 1).style("display", null);
     // Scale axes to fit all data
     y.domain([0, 210]);
-    gY.transition().duration(1000).call(yAxis);
+    gY.transition().duration(1000).call(yAxis.tickFormat(function (d) {
+        return d;
+    }));
     xAxis.scale(x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)]));
     gX.transition().duration(1000).call(xAxis);
+
+    d3.selectAll(".x-axis path").style("opacity", 1);
 
     pointsGroup.style("opacity", 0);
     t0.select("#slide1-group").style("opacity", 1);
@@ -688,13 +737,19 @@ function to_second_slide(current_slide) {
             case 2:
                 // Fade all objects belonging to third slide
                 t0.select("#slide3-group").style("opacity", 0).remove();
+
+                d3.select("#tooltip").classed("slide3-tooltip", false).classed("slide5-tooltip", false);
                 break;
 
         }
 
         // Scale axes to fit all data
-        xAxis.scale(x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)]));
+        x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)]);
+        xAxis = d3.axisBottom(x);
+        if (isMobile) xAxis.ticks(5);
         gX.transition().duration(1000).call(xAxis);
+
+        d3.selectAll(".x-axis path").style("opacity", 1);
 
         add_election_rects(true);
         second_slide(true);
@@ -773,7 +828,7 @@ function second_slide() {
     }).curve(d3.curveBasis);
 
     // add the line path
-    total_women_mps_path = slide2Group.append("path").attr("class", "total-women-mps-path slide2").datum(number_women_over_time_data).attr("stroke-width", 1.5 * lineThickness).attr("d", total_women_mps_line);
+    total_women_mps_path = slide2Group.append("path").attr("class", "total-women-mps-path slide2").datum(number_women_over_time_data).attr("stroke-width", 1.5 * lineThickness).attr("d", total_women_mps_line).style("opacity", 0);
 
     var path_node = total_women_mps_path.node();
     // path_node.style.transition = "none"
@@ -807,6 +862,8 @@ function second_slide() {
     // ----------------------------------------------------------------------------
     // Hide the tooltip
     d3.select("#tooltip").style("opacity", 0);
+    // Get rid of annotation line too
+    d3.selectAll(".annotation-group").remove();
 
     // Hide the mouseover line
     mouseover_svg.select("line").style("opacity", 0);
@@ -925,13 +982,14 @@ function second_slide() {
 
     // Rescale y axis to include all MPs
     y.domain([0, 750]);
+    yAxis = d3.axisRight(y);
 
     // Change y axis label
     yLabel.transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 750).text("Number of MPs");
 
     chartTitle.transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 750).text("MPs in the House of Commons");
 
-    slide2Group.append("text").attr("x", x(new Date(2010, 1, 1))).attr("y", y(0) - 10 * lineThickness).attr("font-size", Math.min(y(number_women_over_time_data.slice(-1)[0].total_women_mps) / 4, (x(new Date(2020, 1, 1)) - x(new Date(2000, 1, 1))) / 4)).attr("class", "women-label").text("Women").style("opacity", 0).transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 500).style("opacity", 1);
+    slide2Group.append("text").attr("x", x(new Date(2017, 1, 1))).attr("y", y(0) - 10 * lineThickness).attr("class", "women-label").text("Women").style("opacity", 0).transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 500).style("opacity", 1);
 
     // Do the actual axis rescale now
     gY.transition().delay(no_transition ? 0 : 5500).duration(no_transition ? 1000 : 750).call(yAxis);
@@ -940,7 +998,8 @@ function second_slide() {
 
     total_women_mps_path_area.transition().delay(no_transition ? 0 : 5500).duration(no_transition ? 0 : 750).attr("d", total_women_mps_area);
 
-    total_women_mps_path.transition().delay(no_transition ? 0 : 5500 + 750).duration(0).attr("d", total_women_mps_line).style("opacity", 1);
+    total_women_mps_path.transition().delay(no_transition ? 0 : 5500 + 750).duration(0).attr("d", total_women_mps_line);
+    // .style("opacity", 0)
 
     // Draw a line and area for the total number of MPs
     max_mps_path.transition().delay(no_transition ? 0 : 6500).duration(no_transition ? 0 : 750).attr("d", max_mps_line);
@@ -967,7 +1026,10 @@ function second_slide() {
 
     svg.transition().delay(no_transition ? 0 : 7000).on("end", function () {
         // Add text labels for areas
-        slide2Group.append("text").attr("x", x(new Date(2010, 1, 1))).attr("y", y(500)).attr("font-size", Math.min(y(number_women_over_time_data.slice(-1)[0].total_women_mps) / 4, (x(new Date(2020, 1, 1)) - x(new Date(2000, 1, 1))) / 4)).attr("class", "men-label").text("Men").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
+        slide2Group.append("text").attr("x", x(new Date(2017, 1, 1))).attr("y", y(500)).attr("class", "men-label").text("Men").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
+
+        // Add text label for party
+        slide2Group.append("text").attr("x", x(new Date(1920, 1, 1))).attr("y", y(600)).attr("class", "party-label").attr("alignment-baseline", "hanging").text("");
 
         // Add a smoothed 50% line to show halfway mark for gender and place text label on it
         half_max_mps_line_smooth = d3.line().x(function (d) {
@@ -982,33 +1044,69 @@ function second_slide() {
         slide2Group.append("text").append("textPath")
         // .attr("x", x(new Date(1970, 1, 1)))
         // .attr("y", y(630/2))
-        .attr("startOffset", "50%").attr("xlink:href", "#half-max-textpath").attr("font-size", Math.max(lineThickness * 10, Math.min(lineThickness * 20, (x(new Date(2020, 1, 1)) - x(new Date(2000, 1, 1))) / 6))).attr("class", "i5050-label").text("50:50 gender representation").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
+        .attr("startOffset", "50%").attr("xlink:href", "#half-max-textpath").attr("class", "i5050-label").text("50:50 gender representation").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
 
         // Use election rects to catch mouseovers and display information
         electionRects.on("mouseover", function (d, i) {
+            // Interrupt previous transition
+            d3.select("#tooltip").interrupt();
+            // Hide tooltip on scroll but wait for window to settle first
+            d3.timeout(function () {
+                window.addEventListener("scroll", function () {
+                    d3.select("#tooltip").style("opacity", 0);
+                    // Get rid of annotation line too
+                    d3.selectAll(".annotation-group").remove();
+                }, { once: true });
+            }, 1000);
+            // Hide tooltip after 5 secs
+            d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove();
+            });
+
             // Get mouse positions
             var mousePos = d3.mouse(this);
 
-            d3.select("#tooltip").style("opacity", 1).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth / 2 - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
+            d3.select("#tooltip").style("opacity", 1).classed("slide3-tooltip", true).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
 
             d3.select(this).classed("hover", true);
             // Reconfigure tooltip to show different information
             var first_election = d.year;
             var second_election = total_mps_over_time_data[Math.min(total_mps_over_time_data.length - 1, i + 1)].year;
             if (chartTitle.text().includes("Labour")) {
-                var num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].labour_women_mps;
+                // Take highest number of women who served during that time
+                var num_women = Math.max.apply(Math, _toConsumableArray(number_women_over_time_data.filter(function (d) {
+                    return d.year > first_election && d.year <= second_election;
+                }).map(function (d) {
+                    return d.labour_women_mps;
+                })));
                 var gender_ratio = d.labour_mps / num_women - 1;
+                tooltip.innerHTML = "<div class=\"slide2-tooltip\"><h1>" + formatDate(first_election) + " &rarr; " + formatDate(second_election) + "</h1>\n                        " + (num_women > 0 ? "<p>" + num_women + " Wom" + (num_women == 1 ? "a" : "e") + "n</p><hr/>\n                        For every <span class=\"female\">female</span> Labour MP, there " + (new Date() > second_election ? "were" : "are") + "\n                        <div class=\"gender-ratio\">" + gender_ratio.toFixed(1) + "</div> <span class=\"male\">male</span> Labour MPs." : "There were no Labour women in the House of Commons yet :(") + "\n                        </div>\n                        ";
             } else if (chartTitle.text().includes("Conservative")) {
-                num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].conservative_women_mps;
+                num_women = Math.max.apply(Math, _toConsumableArray(number_women_over_time_data.filter(function (d) {
+                    return d.year > first_election && d.year <= second_election;
+                }).map(function (d) {
+                    return d.conservative_women_mps;
+                })));
                 gender_ratio = d.conservative_mps / num_women - 1;
+                tooltip.innerHTML = "<div class=\"slide2-tooltip\"><h1>" + formatDate(first_election) + " &rarr; " + formatDate(second_election) + "</h1>\n                        " + (num_women > 0 ? "<p>" + num_women + " Wom" + (num_women == 1 ? "a" : "e") + "n</p><hr/>\n                        For every <span class=\"female\">female</span> Conservative MP, there " + (new Date() > second_election ? "were" : "are") + "\n                        <div class=\"gender-ratio\">" + gender_ratio.toFixed(1) + "</div> <span class=\"male\">male</span> Conservative MPs." : "There were no Conservative women in the House of Commons yet :(") + "\n                        </div>\n                        ";
             } else if (chartTitle.text().includes("Liberal")) {
-                num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].lib_snp_women_mps;
+                num_women = Math.max.apply(Math, _toConsumableArray(number_women_over_time_data.filter(function (d) {
+                    return d.year > first_election && d.year <= second_election;
+                }).map(function (d) {
+                    return d.lib_snp_women_mps;
+                })));
                 gender_ratio = d.lib_snp_mps / num_women - 1;
+                tooltip.innerHTML = "<div class=\"slide2-tooltip\"><h1>" + formatDate(first_election) + " &rarr; " + formatDate(second_election) + "</h1>\n                        " + (num_women > 0 ? "<p>" + num_women + " Wom" + (num_women == 1 ? "a" : "e") + "n</p><hr/>\n                        For every <span class=\"female\">female</span> Lib Dem or SNP MP, there " + (new Date() > second_election ? "were" : "are") + "\n                        <div class=\"gender-ratio\">" + gender_ratio.toFixed(1) + "</div> <span class=\"male\">male</span> Lib Dem or SNP MPs." : "There were no Lib Dem or SNP women in the House of Commons yet :(") + "\n                        </div>\n                        ";
             } else {
-                num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].total_women_mps;
+                num_women = Math.max.apply(Math, _toConsumableArray(number_women_over_time_data.filter(function (d) {
+                    return d.year > first_election && d.year <= second_election;
+                }).map(function (d) {
+                    return d.total_women_mps;
+                })));
                 gender_ratio = d.total_mps / num_women - 1;
+                tooltip.innerHTML = "<div class=\"slide2-tooltip\"><h1>" + formatDate(first_election) + " &rarr; " + formatDate(second_election) + "</h1>\n        " + (num_women > 0 ? "<p>" + num_women + " Wom" + (num_women == 1 ? "a" : "e") + "n</p><hr/>\n            For every <span class=\"female\">female</span> MP, there " + (new Date() > second_election ? "were" : "are") + "\n                                <div class=\"gender-ratio\">" + gender_ratio.toFixed(1) + "</div> <span class=\"male\">male</span> MPs." : "There were no women in the House of Commons yet :(") + "\n                                </div>\n            ";
             }
-            tooltip.innerHTML = "<div class=\"slide2-tooltip\"><h1>" + formatDate(first_election) + " &rarr; " + formatDate(second_election) + "</h1>\n        " + (num_women > 0 ? "<p>" + num_women + " Wom" + (num_women == 1 ? "a" : "e") + "n</p><hr/>\n            For every <span class=\"female\">female</span> MP, there " + (new Date() > second_election ? "were" : "are") + "\n                                <div class=\"gender-ratio\">" + gender_ratio.toFixed(1) + "</div> <span class=\"male\">male</span> MPs." : "There were no women in the House of Commons yet :(") + "\n                                </div>\n            ";
         }).on("mouseout", function () {
             d3.select(this).classed("hover", false);
         });
@@ -1033,7 +1131,17 @@ function to_third_slide(current_slide) {
             case 0:
                 // If we're coming from the first slide
                 t0.select("#slide1-group").style("opacity", 0).remove();
+                yAxis = d3.axisRight(y).tickFormat(function (d) {
+                    return d;
+                });
                 break;
+            case 1:
+                // If we're coming from the second slide
+                yAxis = d3.axisRight(y).tickFormat(function (d) {
+                    return d;
+                });
+                break;
+
             case 3:
                 // If we're coming from the fourth slide
                 d3.select("#slide4").transition(t0).style("opacity", 0).on("end", function () {
@@ -1043,14 +1151,18 @@ function to_third_slide(current_slide) {
                 // Change scales
                 x = d3.scaleUtc().range([0, width]).domain([new Date(1990, 1, 1), new Date(2017, 12, 1)]);
                 // Redraw axes
-                xAxis = d3.axisBottom(x);
-                if (isMobile) xAxis.ticks(5);
+                xAxis = d3.axisBottom(x).tickFormat(function (d) {
+                    return d3.timeFormat("%Y")(d);
+                });
+                if (isMobile) {
+                    xAxis.tickValues(x.ticks(8).concat(x.domain()));
+                }
 
-                yAxis = d3.axisLeft(y).tickFormat(function (d) {
+                yAxis = d3.axisRight(y).tickFormat(function (d) {
                     return d;
                 });
 
-                xLabel.text("Time").style("opacity", 1);
+                xLabel.text("Year").style("opacity", 1);
 
                 yLabel.style("opacity", 1);
 
@@ -1062,13 +1174,15 @@ function to_third_slide(current_slide) {
                 // Show 50% line again
                 d3.select("#slide2-group").style("opacity", 1);
 
-                d3.selectAll(".i5050-label").attr("startOffset", "90%");
+                // Crop the 5050 line to 1990 onwards
+                text_path_50_50.datum(total_mps_over_time_data.slice(13));
 
                 // Disable all pointer events for canvas
                 canvas.style("pointer-events", "none");
                 break;
         }
 
+        d3.selectAll(".x-axis path").style("opacity", 1);
         third_slide(true);
     }
 }
@@ -1093,7 +1207,7 @@ function third_slide() {
     // Add group to hold third slide lines
     slide3Group = zoomedArea.append("g").attr("id", "slide3-group");
 
-    chartTitle.transition().text("Parliaments in developed countries");
+    chartTitle.transition().style("opacity", 1).text("Parliaments in developed countries");
 
     // ----------------------------------------------------------------------------
     //  █████╗  ██████╗████████╗     ██╗
@@ -1106,13 +1220,34 @@ function third_slide() {
     // ----------------------------------------------------------------------------
     var t0 = d3.transition().duration(no_transition ? 500 : 1000);
     y.domain([0, 100]);
-    gY.transition(t0).call(yAxis);
+    gY.transition(t0).call(yAxis.tickFormat(function (d) {
+        return d;
+    }));
 
     total_women_mps_line.y(function (d) {
         return y(d.women_pct);
     });
 
-    total_women_mps_path.transition(t0).attr("d", total_women_mps_line);
+    total_women_mps_path.style("opacity", 1).transition(t0).attr("d", total_women_mps_line);
+
+    // Label this line
+    var make_country_label = d3.annotation().type(d3.annotationCallout).annotations([{
+        note: {
+            title: "United States"
+        },
+        connector: {
+            end: "arrow"
+        },
+        //can use x, y directly instead of data
+        x: x(new Date(2017, 1, 1)),
+        y: y(33),
+        dx: x(new Date(2014, 1, 1)) - x(new Date(2017, 1, 1)),
+        dy: y(5) - y(33)
+    }]);
+
+    d3.timeout(function () {
+        slide3Group.append("g").attr("class", "country-label").call(make_country_label);
+    }, no_transition ? 500 : 1000);
 
     total_women_mps_area.y1(function (d) {
         return y(d.women_pct);
@@ -1139,7 +1274,7 @@ function third_slide() {
     half_max_mps_path.transition(t0).attr("d", half_max_mps_line);
 
     half_max_mps_line_smooth.y(function () {
-        return y(52);
+        return y(51);
     });
 
     text_path_50_50.transition(t0).attr("d", half_max_mps_line_smooth);
@@ -1160,7 +1295,12 @@ function third_slide() {
     var countryColors = d3.scaleOrdinal(d3.schemeCategory20);
 
     // Scale axis to focus on modern history
-    xAxis.scale(x.domain([new Date(1990, 1, 1), new Date(2017, 12, 1)]));
+    x.domain([new Date(1990, 1, 1), new Date(2017, 12, 1)]);
+    xAxis.scale(x);
+
+    if (isMobile) xAxis.tickValues(x.ticks(8).concat(x.domain())).tickFormat(function (d) {
+        return d3.timeFormat("%Y")(d);
+    });
 
     var t1 = t0.transition().duration(no_transition ? 500 : 1000);
 
@@ -1220,7 +1360,7 @@ function third_slide() {
     var t2 = t1.transition().duration(no_transition ? 1000 : 2000);
 
     // Move tooltip to better location
-    d3.select("#tooltip").style("transform", "translate(" + Math.max(Math.min(width / 2 - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left / 2) + "px," + Math.max(Math.min(-tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)");
+    d3.select("#tooltip").classed("slide3-tooltip", true).style("transform", "translate(" + Math.max(Math.min(width / 2 - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left / 2) + "px," + Math.max(Math.min(-tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)");
 
     // Start drawing all the other countries, one by one, speeding up as we go along
     var country_on_screen = [];
@@ -1267,6 +1407,17 @@ function third_slide() {
     .attr("pointer-events", "all").on("mouseover", mouseover).on("mouseout", mouseout);
 
     function mouseover(d) {
+        // Interrupt previous transition
+        d3.select("#tooltip").interrupt();
+        // Hide tooltip on scroll but wait for window to settle first
+        d3.timeout(function () {
+            window.addEventListener("scroll", function () {
+                d3.select("#tooltip").style("opacity", 0);
+            }, { once: true });
+        }, 1000);
+        // Hide tooltip after 5 secs
+        d3.select("#tooltip").transition().delay(5000).style("opacity", 0);
+
         // If country line is on screen, then enable mouseover
         if (country_on_screen.indexOf(d.data.country) > -1) {
             // Get mouse positions
@@ -1291,9 +1442,9 @@ function third_slide() {
     function mouseout(d) {
         if (country_on_screen.indexOf(d.data.country) > -1) {
             d.line.attr("stroke-width", function (d) {
-                return d.key == "United Kingdom" ? 1.5 * lineThickness : lineThickness / 2;
+                return d.key == "United States" ? 0.75 * lineThickness : lineThickness / 4;
             }).style("opacity", function (d) {
-                return d.key == "United Kingdom" ? 1.0 : 0.5;
+                return d.key == "United States" ? 1.0 : 0.5;
             });
             // focus.attr("transform", "translate(-100,-100)")
         }
@@ -1328,9 +1479,11 @@ function to_fourth_slide(current_slide) {
             // Fade all objects belonging to third slide
             d3.select("#slide2-group").style("opacity", 0);
 
-            t0.select("#slide3-group").style("opacity", 0).on("end", function () {
-                this.remove();
+            d3.select("#slide3-group").style("opacity", 0);
+            t0.on("end", function () {
+                d3.select("#slide3-group").remove();
             });
+            d3.select("#tooltip").classed("slide3-tooltip", false).classed("slide5-tooltip", false);
             break;
         case 4:
             // Fade canvas
@@ -1339,7 +1492,7 @@ function to_fourth_slide(current_slide) {
             // Hide mouseover circle
             mouseover_svg.select("circle").style("opacity", 0);
 
-            d3.selectAll("#topic-label, .slide5-dropdown, .x-custom-axis, .switch").style("opacity", 0).transition().delay(500).on("end", function () {
+            d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis, .switch").style("opacity", 0).transition().delay(500).on("end", function () {
                 this.remove();
             });
 
@@ -1388,11 +1541,11 @@ function to_fifth_slide(current_slide) {
             d3.select("#slide2-group").style("opacity", 0);
 
             t0.select("#slide3-group").style("opacity", 0).remove();
+            d3.select("#tooltip").classed("slide3-tooltip", false).classed("slide5-tooltip", false);
             break;
         case 5:
             // Fade out sixth slide
-            d3.select("#slide6-group").style("opacity", 0);
-            d3.selectAll(".x-custom-label").style("opacity", 0).on("end", function () {
+            d3.selectAll("#slide6-group, .x-custom-label, .y-axis").style("opacity", 0).on("end", function () {
                 d3.selectAll(".x-custom-label").remove();
             });
             break;
@@ -1409,19 +1562,22 @@ function to_fifth_slide(current_slide) {
     });
 
     gX.style("opacity", 0);
-    gY.style("opacity", 0);
 
     xLabel.style("opacity", 0);
-    yLabel.style("opacity", 0);
 
-    d3.select("#topic-label").remove();
     d3.select(".slide5-dropdown").remove();
 
     // Increment lastTransitioned counter if it is less than 0
     if (lastTransitioned < 4) {
         lastTransitioned = 4;
         fifth_slide(false);
+    } else if (lastTransitioned == 5) {
+        // Wait a bit for axes to fade out first
+        d3.transition().duration(600).on("end", function () {
+            fifth_slide(true);
+        });
     } else {
+        // Wait a bit for axes to fade out first
         fifth_slide(true);
     }
     d3.select("#slide4").style("display", "none");
@@ -1451,31 +1607,195 @@ function fifth_slide() {
     // Enable canvas
     d3.select("#visible-canvas").style("opacity", 1).style("display", null).style("pointer-events", "all");
 
-    d3.select(".switch").style("opacity", 1);
+    // d3.select(".switch")
+    //     .style("opacity", 1)
 
-    // Add a dropdown to select different topics
+
     if (lastTransitioned > 4) {
+        // Calculate labels for dropdown based on how polarised the topic is
+        var hist = d3.histogram().domain([-1.5, 1.5]).thresholds([-.8, -0.4, -0.05, 0.05, 0.4, .8]);
+
+        // dictionary to store the labels
+        var dropdown_labels = {};
+
+        // Loop through each topic, calculating the histogram bin that it belongs to.
+        // All the male topics get ♂ symbols and all the female topics get ♀ symbols.
+        // We assign 3 symbols to the most polarised topics and 0 to the least polarised
+        Object.entries(topic_medians_data).map(function (d) {
+            return [d[0], ["♂♂♂", "♂♂ ", "♂  ", "⚤  ", "♀  ", "♀♀ ", "♀♀♀"][hist([d[1]["female"] > d[1]["male"] ? d[1]["female"] / d[1]["male"] - 1 : -d[1]["male"] / d[1]["female"] + 1]).map(function (i) {
+                return i.length;
+            }).indexOf(1)] + " " + d[0]];
+        }).forEach(function (d) {
+            dropdown_labels[d[0]] = d[1];
+        });
+
+        // Add a dropdown to select different topics
         d3.select("body").append("span").attr("class", "slide5-dropdown").append("select").attr("id", "topic-dropdown").attr("class", "slide5-dropdown__select").on("change", update_fifth_slide).selectAll(".topic").data(baked_positions_data.map(function (topic) {
             return topic.key;
-        })).enter().append("option").attr("selected", function (d) {
+        }).reverse()).enter().append("option").attr("selected", function (d) {
             return d == selected_topic ? "selected" : null;
         }).attr("value", function (d) {
             return d;
         }).text(function (d) {
-            return d.toUpperCase();
+            return dropdown_labels[d].toUpperCase();
         });
     }
 
+    // Add search box for MPs
+    d3.selectAll(".slide5-search").remove();
+    d3.select("body").append("span").attr("class", "slide5-search").append("input").attr("id", "mp-search").attr("type", "text").attr("placeholder", "🔎 Search for your MP by name or constituency!");
+
+    var inp = document.getElementById("mp-search");
+    // Variable that holds the currently focused mp
+    var currentFocus = void 0;
+
+    function doSearch() {
+        // This function is called every time the search input changes
+        var val = this.value.toLowerCase();
+        var results = temp_nodes.slice(2).filter(function (d) {
+            return d.search_string.includes(val);
+        }).sort(function (a, b) {
+            return a.search_string.search(val) - b.search_string.search(val);
+        }); // MPs with strings matching first names go first
+        closeAllLists();
+        if (results.length == 1) {
+            slide5_show_mp_tooltip(results[0]);
+        }
+        if (!val) {
+            return false;
+        }
+        currentFocus = -1;
+        /*create a DIV element that will contain the items (values):*/
+        var a = document.createElement("DIV");
+        a.setAttribute("id", this.id + "autocomplete-list");
+        a.setAttribute("class", "autocomplete-items");
+        /*append the DIV element as a child of the autocomplete container:*/
+        this.parentNode.appendChild(a);
+        /*for each item in the array...*/
+        for (var i = 0; i < results.length; i++) {
+            /*check if the item starts with the same letters as the text field value:*/
+
+            /*create a DIV element for each matching element:*/
+            var b = document.createElement("DIV");
+            // MP appears as "Jeremy Corbyn (L-Islington North)"
+            var mp_string = results[i].full_name + " (" + results[i].party[0] + "-" + results[i].constituency + ")";
+            /*make the matching letters bold:*/
+            var match_position = mp_string.toLowerCase().search(val);
+            if (match_position != -1) {
+                b.innerHTML = mp_string.slice(0, match_position) + "<b>" + mp_string.slice(match_position, match_position + val.length) + "</b>" + mp_string.slice(match_position + val.length);
+            } else {
+                b.innerHTML = mp_string;
+            }
+            /*insert a input field that will hold the current array item's value:*/
+            b.innerHTML += "<input type='hidden' value='" + results[i].id + "'>";
+            /*execute a function when someone clicks on the item value (DIV element):*/
+            b.addEventListener("click", function () {
+                var _this = this;
+
+                /*insert the value for the autocomplete text field:*/
+                inp.value = temp_nodes.slice(2).filter(function (d) {
+                    return d.id == _this.getElementsByTagName("input")[0].value;
+                })[0].full_name;
+                slide5_show_mp_tooltip(temp_nodes.slice(2).filter(function (d) {
+                    return d.id == _this.getElementsByTagName("input")[0].value;
+                })[0]);
+                /*close the list of autocompleted values,
+                (or any other open lists of autocompleted values:*/
+                closeAllLists();
+            });
+            a.appendChild(b);
+        }
+    }
+
+    /*execute a function presses a key on the keyboard:*/
+    inp.addEventListener("keydown", function (e) {
+        var x = document.getElementById(this.id + "autocomplete-list");
+        if (x) x = x.getElementsByTagName("div");
+        if (x == null) return;
+        if (e.keyCode == 40) {
+            /*If the arrow DOWN key is pressed,
+            increase the currentFocus variable:*/
+            currentFocus++;
+
+            // Show the MP that it corresponds to
+            slide5_show_mp_tooltip(temp_nodes.slice(2).filter(function (d) {
+                return d.id == x[currentFocus].getElementsByTagName("input")[0].value;
+            })[0]);
+            /*and and make the current item more visible:*/
+            addActive(x);
+        } else if (e.keyCode == 38) {
+            //up
+            /*If the arrow UP key is pressed,
+            decrease the currentFocus variable:*/
+            currentFocus--;
+            // Show the MP that it corresponds to
+            slide5_show_mp_tooltip(temp_nodes.slice(2).filter(function (d) {
+                return d.id == x[currentFocus].getElementsByTagName("input")[0].value;
+            })[0]);
+            /*and and make the current item more visible:*/
+            addActive(x);
+        } else if (e.keyCode == 13) {
+            /*If the ENTER key is pressed, prevent the form from being submitted,*/
+            e.preventDefault();
+            if (currentFocus > -1) {
+                /*and simulate a click on the "active" item:*/
+                if (x) x[currentFocus].click();
+            }
+        }
+    });
+
+    function addActive(x) {
+        /*a function to classify an item as "active":*/
+        if (!x) return false;
+        /*start by removing the "active" class on all items:*/
+        removeActive(x);
+        if (currentFocus >= x.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = x.length - 1;
+        /*add class "autocomplete-active":*/
+        x[currentFocus].classList.add("autocomplete-active");
+    }
+
+    function removeActive(x) {
+        /*a function to remove the "active" class from all autocomplete items:*/
+        for (var i = 0; i < x.length; i++) {
+            x[i].classList.remove("autocomplete-active");
+        }
+    }
+
+    function closeAllLists(elmnt) {
+        /*close all autocomplete lists in the document,
+        except the one passed as an argument:*/
+        var x = document.getElementsByClassName("autocomplete-items");
+        for (var i = 0; i < x.length; i++) {
+            if (elmnt != x[i] && elmnt != inp) {
+                x[i].parentNode.removeChild(x[i]);
+            }
+        }
+    }
+
+    // Bind search function to input event
+    document.getElementById("mp-search").addEventListener("input", doSearch);
+
     // Scales for this data
-    slide5_xScale = d3.scaleLinear().domain([-350, 150]).range([0, width]);
+    slide5_xScale = d3.scaleLinear().domain([-350, 150]).range([margin.left, width + margin.left + margin.right]);
 
     slide5_yScale = d3.scaleLinear().domain([-0.005, 0.3]).range([height, 0]);
 
     y = slide5_yScale;
 
+    // Move y axis to the right and hide main line
+    yAxis = d3.axisRight(y).ticks(10).tickFormat(function (d) {
+        return d % 0.1 == 0 ? (d * 100).toFixed(0) + "%" : "";
+    });
+    gY.call(yAxis).attr("transform", "translate(" + width + ", 0)").attr("text-anchor", "start").style("opacity", 1);
+
+    d3.select(".y-axis path").style("opacity", 0);
+
+    yLabel.text("% of time spent on topic").style("opacity", 1);
+
     d3.select("#slide5-group").remove();
 
-    // Call function initially
+    // Call draw function initially
     if (typeof selected_topic != "undefined") {
         update_fifth_slide(no_transition, selected_topic);
     } else {
@@ -1502,19 +1822,24 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     // Hide tooltip
     d3.select("#tooltip").style("opacity", 0);
 
+    // Remove annotations
+    d3.selectAll(".annotation-group").remove();
+
     // Zoom out
-    if (document.getElementById("zoom-checkbox").checked != false) {
-        document.getElementById("zoom-checkbox").click();
+    if (document.getElementById("zoom-checkbox") != null) {
+        if (document.getElementById("zoom-checkbox").checked != false) {
+            document.getElementById("zoom-checkbox").click();
+        }
     }
 
     if (typeof default_selected_topic != "undefined" && typeof default_selected_topic != "number" && from_scroll) {
         selected_topic = default_selected_topic;
 
-        // Append a new label
-        wrapper.select("#topic-label").remove();
+        // Show title
+        chartTitle.style("opacity", 1);
     } else {
-        // Remove label because we have dropdown instead
-        wrapper.select("#topic-label").remove();
+        // Remove title because we have dropdown instead
+        chartTitle.style("opacity", 0);
         // Get value of topic dropdown
         try {
             selected_topic = d3.select("#topic-dropdown").property("value");
@@ -1538,7 +1863,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     });
 
     // Make alternate data store for medians
-    var temp_nodes = [];
+    temp_nodes = [];
 
     temp_nodes.push({
         "x": slide5_xScale(0),
@@ -1581,7 +1906,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     circle_male = dataContainer.selectAll(".male-node").data(nodes_male);
 
     // UPDATE
-    circle_male.transition().duration(2000).attr("opacity", 0.7).attr("cx", function (d) {
+    circle_male.transition().duration(1500).attr("opacity", 0.7).attr("cx", function (d) {
         return slide5_xScale(d.x) - 10;
     }).attr("cy", function (d) {
         return slide5_yScale(d.y);
@@ -1605,7 +1930,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     circle_female = dataContainer.selectAll(".female-node").data(nodes_female);
 
     // UPDATE
-    circle_female.transition().duration(2000).attr("opacity", 0.7).attr("cx", function (d) {
+    circle_female.transition().duration(1500).attr("opacity", 0.7).attr("cx", function (d) {
         return slide5_xScale(d.x) + 10;
     }).attr("cy", function (d) {
         return slide5_yScale(d.y);
@@ -1629,7 +1954,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     var median_connector_line = dataContainer.selectAll(".median-connector").data([topic_medians_data[selected_topic]]);
 
     // Update
-    median_connector_line.transition().duration(1000).attr("y1", function (d) {
+    median_connector_line.transition().duration(1500).attr("x1", slide5_xScale(0)).attr("x2", slide5_xScale(0)).attr("y1", function (d) {
         return slide5_yScale(drawMedian ? d["female"] : 0.5);
     }).attr("y2", function (d) {
         return slide5_yScale(drawMedian ? d["male"] : 0.5);
@@ -1647,7 +1972,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     var male_median_circle = dataContainer.selectAll(".male-median").data([topic_medians_data[selected_topic]["male"]]);
 
     // Update
-    male_median_circle.transition().duration(1000).attr("cy", function (d) {
+    male_median_circle.transition().duration(1500).attr("cx", slide5_xScale(0)).attr("cy", function (d) {
         return slide5_yScale(drawMedian ? d : 0);
     }).attr("opacity", drawMedian ? 1 : 0);
 
@@ -1766,6 +2091,52 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     gX.call(d3.axisBottom(slide5_xScale).ticks(20));
     draw_custom_labels();
 
+    // ----------------------------------------------------------------------------
+    // Annotate medians with labels
+    // ----------------------------------------------------------------------------
+
+    // Remove existing annotations
+    mouseover_svg.selectAll(".female-label, .male-label").remove();
+
+    if (drawMedian) {
+        // Label female median dot
+        var make_female_label = d3.annotation().type(d3.annotationCallout).annotations([{
+            note: {
+                title: "Median female: " + (topic_medians_data[selected_topic]["female"] * 100).toFixed(1) + "%"
+            },
+            connector: {
+                end: "dot"
+            },
+            //can use x, y directly instead of data
+            x: slide5_xScale(0),
+            y: slide5_yScale(topic_medians_data[selected_topic]["female"]),
+            dx: slide5_xScale(-100) - slide5_xScale(0),
+            dy: slide5_yScale(topic_medians_data[selected_topic]["female"] > topic_medians_data[selected_topic]["male"] ? 0.25 : 0.1) - slide5_yScale(topic_medians_data[selected_topic]["female"])
+        }]);
+
+        d3.timeout(function () {
+            mouseover_svg.select(".timeline-wrapper").append("g").attr("class", "female-label").call(make_female_label);
+        }, 1500);
+        // Label female median dot
+        var make_male_label = d3.annotation().type(d3.annotationCallout).annotations([{
+            note: {
+                title: "Median male: " + (topic_medians_data[selected_topic]["male"] * 100).toFixed(1) + "%"
+            },
+            connector: {
+                end: "dot"
+            },
+            //can use x, y directly instead of data
+            x: slide5_xScale(0),
+            y: slide5_yScale(topic_medians_data[selected_topic]["male"]),
+            dx: slide5_xScale(-100) - slide5_xScale(0),
+            dy: slide5_yScale(topic_medians_data[selected_topic]["male"] > topic_medians_data[selected_topic]["female"] ? 0.25 : 0.1) - slide5_yScale(topic_medians_data[selected_topic]["male"])
+        }]);
+
+        d3.timeout(function () {
+            mouseover_svg.select(".timeline-wrapper").append("g").attr("class", "male-label").call(make_male_label);
+        }, 1500);
+    }
+
     // mouseover function for getting MP info
     function mpMouseover() {
         // Get mouse positions from the main canvas.
@@ -1781,18 +2152,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         if (typeof nodeData !== "undefined") {
             // If we're dealing with mp nodes
             if (typeof nodeData.id !== "undefined") {
-                // For each point group, set tooltip to display on mouseover
-                d3.select("#tooltip").style("opacity", 1).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
-
-                var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1;
-                // Show relevant tooltip info
-                tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"background-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n                    <p><em>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(2) + "%</em> of " + nodeData.full_name + "'s time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n</div>";
-                // Also select the mouseover circle and move it to the right location
-                mouseover_svg.select("circle").datum(nodeData).attr("cx", function (d) {
-                    return d.x;
-                }).attr("cy", function (d) {
-                    return d.y;
-                }).attr("r", circleRadius * 2.5).style("opacity", 1).style("stroke-width", circleRadius);
+                slide5_show_mp_tooltip(nodeData, mousePos);
             } else {
                 median_mouseover(nodeData, mousePos);
             }
@@ -1802,9 +2162,93 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
 
     canvas.on("mousemove", mpMouseover).on("drag", mpMouseover).on("touchend", mpMouseover);
 
+    window.slide5_show_mp_tooltip = function (nodeData, mousePos) {
+        // Interrupt previous transition
+        d3.select("#tooltip").interrupt();
+        // Hide tooltip on scroll but wait for window to settle first
+        d3.timeout(function () {
+            window.addEventListener("scroll", function () {
+                d3.select("#tooltip").style("opacity", 0);
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove();
+            }, { once: true });
+        }, 1000);
+        // Hide tooltip after 5 secs
+        d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
+            // Get rid of annotation line too
+            d3.selectAll(".annotation-group").remove();
+        });
+        if (typeof mousePos === "undefined") {
+            mousePos = [nodeData.x, nodeData.y]; //[width * 3 / 4, height * 3 / 4]
+            // if (isMobile) {
+            //     mousePos = [width / 2, 0]
+            // }
+        }
+
+        // Display tooltip either near mouse cursor or near MP
+        d3.select("#tooltip").style("opacity", 1).classed("slide5-tooltip", true).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth, width - tooltip.offsetWidth - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
+
+        var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1;
+        // Show relevant tooltip info
+        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"background-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n</div>";
+        // Also select the mouseover circle and move it to the right location
+        mouseover_svg.select("circle").datum(nodeData).attr("cx", function (d) {
+            return d.x;
+        }).attr("cy", function (d) {
+            return d.y;
+        }).attr("r", circleRadius * 2.5).style("opacity", 1).style("stroke-width", circleRadius);
+
+        d3.timeout(function () {
+            // Annotate circle
+            var tooltip_pos = tooltip.getBoundingClientRect();
+            // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+            //     width - tooltip.offsetWidth - margin.right),
+            // 0 + margin.left), width: tooltip.offsetWidth, bottom: Math.max(Math.min(mousePos[1] - 20,
+            //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
+            var circle_pos = mouseover_svg.select("circle").node().getBoundingClientRect();
+
+            d3.selectAll(".annotation-group").remove();
+
+            var makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations([{
+                note: {
+                    title: "...."
+                },
+                connector: {
+                    end: "dot"
+                },
+                //can use x, y directly instead of data
+                x: circle_pos.x + circle_pos.width / 2,
+                y: circle_pos.y + circle_pos.width / 2,
+                dx: tooltip_pos.x + tooltip_pos.width / 2 - circle_pos.x,
+                dy: tooltip_pos.bottom - circle_pos.y - 3
+            }]);
+
+            mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+
+            // Hide label because we are using tooltip instead
+            mouseover_svg.selectAll(".annotation-group text").style("opacity", 0);
+        }, 300);
+    };
+
     // Mouseover for medians
     function median_mouseover(nodeData, mousePos) {
-        d3.select("#tooltip").style("opacity", 1).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth / 2 - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
+        // Interrupt previous transition
+        d3.select("#tooltip").interrupt();
+        // Hide tooltip on scroll but wait for window to settle first
+        d3.timeout(function () {
+            window.addEventListener("scroll", function () {
+                d3.select("#tooltip").style("opacity", 0);
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove();
+            }, { once: true });
+        }, 1000);
+
+        // Hide tooltip after 5 secs
+        d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
+            // Get rid of annotation line too
+            d3.selectAll(".annotation-group").remove();
+        });
+        d3.select("#tooltip").style("opacity", 1).classed("slide5-tooltip", true).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth / 2 - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
 
         // Show relevant tooltip info
         tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"background-color: " + (nodeData.gender == "female" ? colors["Female"] : colors["Male"]) + ";\">" + nodeData.gender.toUpperCase() + "</h1>\n                    The average " + nodeData.gender.toUpperCase() + " MP spends <em>" + (nodeData.median * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "male" ? "his" : "her") + " time talking about <em>" + selected_topic + "</em>.\n</div>";
@@ -1813,6 +2257,37 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         }).attr("cy", function (d) {
             return d.y;
         }).attr("r", circleRadius * 2.5).style("opacity", 1).style("stroke-width", circleRadius);
+
+        d3.timeout(function () {
+            // Annotate circle
+            var tooltip_pos = tooltip.getBoundingClientRect();
+            // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+            //     width - tooltip.offsetWidth - margin.right),
+            // 0 + margin.left), width: tooltip.offsetWidth, bottom: Math.max(Math.min(mousePos[1] - 20,
+            //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
+            var circle_pos = mouseover_svg.select("circle").node().getBoundingClientRect();
+
+            d3.selectAll(".annotation-group").remove();
+
+            var makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations([{
+                note: {
+                    title: "...."
+                },
+                connector: {
+                    end: "dot"
+                },
+                //can use x, y directly instead of data
+                x: circle_pos.x + circle_pos.width / 2,
+                y: circle_pos.y + circle_pos.width / 2,
+                dx: tooltip_pos.x + tooltip_pos.width / 2 - circle_pos.x,
+                dy: tooltip_pos.bottom - circle_pos.y - 3
+            }]);
+
+            mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+
+            // Hide label because we are using tooltip instead
+            mouseover_svg.selectAll(".annotation-group text").style("opacity", 0);
+        }, 300);
     }
 }
 
@@ -1843,6 +2318,8 @@ function to_sixth_slide(current_slide) {
             t0.select("#slide3-group").style("opacity", 0).on("end", function () {
                 this.remove();
             });
+
+            d3.select("#tooltip").classed("slide3-tooltip", false).classed("slide5-tooltip", false);
             break;
 
         case 3:
@@ -1852,15 +2329,28 @@ function to_sixth_slide(current_slide) {
             break;
 
         case 4:
-            d3.selectAll("#topic-label, .slide5-dropdown, .x-custom-axis").style("opacity", 0).transition().delay(1000).on("end", function () {
+            chartTitle.style("opacity", 1);
+            d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis").style("opacity", 0).transition().delay(1000).on("end", function () {
                 this.remove();
             });
 
+            d3.select(".y-axis").style("opacity", 0);
+
+            yLabel.style("opacity", 0);
+
             d3.select(".switch").style("opacity", 0);
-            if (document.getElementById("zoom-checkbox").checked != false) {
-                document.getElementById("zoom-checkbox").click();
+            if (document.getElementById("zoom-checkbox") != null) {
+                if (document.getElementById("zoom-checkbox").checked != false) {
+                    document.getElementById("zoom-checkbox").click();
+                }
             }
+            // Remove existing annotations
+            mouseover_svg.selectAll(".female-label, .male-label").remove();
+            d3.selectAll(".annotation-group").remove();
             break;
+        case 6:
+            d3.select("#slide7-group").style("opacity", 0);
+            d3.selectAll(".x-axis path").style("opacity", 1);
     }
 
     // Fade tooltip
@@ -1872,23 +2362,30 @@ function to_sixth_slide(current_slide) {
     electionRects.transition(t0).style("opacity", 0).remove();
 
     if (lastTransitioned < 5) {
+        // If first time transitioning
         // Change scales
         x = d3.scaleLinear().range([0, width]).domain([0, 0.10]);
         // Redraw axes
-        xAxis = d3.axisBottom(x).tickFormat(function (d) {
-            return (d * 100).toFixed(1) + "%";
+        xAxis = d3.axisBottom(x).ticks(6).tickFormat(function (d) {
+            return (d * 100).toFixed(0) + "%";
         });
     } else {
         // Use x scale at end of transition instead
-        x = d3.scaleLinear().range([0, width]).domain([-0.04, 0.04]);
+        x = d3.scaleLinear().range([0, width]).domain([-1.5, 1.5]);
         // Redraw axes
-        xAxis = d3.axisBottom(x).tickFormat(function (d) {
+        xAxis = d3.axisBottom(x).ticks(6).tickFormat(function (d) {
             return (d * 100).toFixed(0) + "%";
         });
+        // Hide canvas
+        canvas.style("opacity", 0).style("display", null).style("pointer-events", "none");
     }
     gX.transition().call(xAxis);
 
     y = d3.scalePoint().range([height, 0]).padding(1);
+    yAxis = d3.axisRight(y);
+    gY.style("opacity", 0).call(yAxis);
+
+    d3.selectAll(".y-axis > .tick text").style("transition", null);
 
     // Increment lastTransitioned counter if it is less than 0
     if (lastTransitioned < 5) {
@@ -1935,16 +2432,35 @@ function sixth_slide() {
     // remove dropdown
     d3.select(".slide5-dropdown").style("opacity", 0).remove();
 
+    // remove mp search
+    d3.select(".slide5-search").style("opacity", 0).remove();
+
     // Set the topics that will appear on the y axis
     var sorted_topics = Object.entries(topic_medians_data).sort(function (a, b) {
-        return a[1]["female"] - a[1]["male"] - (b[1]["female"] - b[1]["male"]);
+        return a[1]["female"] / a[1]["male"] - b[1]["female"] / b[1]["male"];
     });
 
     y.domain(sorted_topics.map(function (d) {
         return d[0];
     }));
-    yAxis = d3.axisLeft(y);
-    gY.transition().call(yAxis);
+    yAxis = d3.axisRight(y);
+    gY.transition().attr("transform", null).attr("text-anchor", "start").call(yAxis);
+
+    // Move the axis labels while still hidden
+    // Label position is on left or right according to location of point
+    var label_pos = sorted_topics.map(function (d) {
+        // If more space on the right
+        if (x.range()[1] - x(Math.max(d[1]["male"], d[1]["female"])) > x(Math.min(d[1]["male"], d[1]["female"])) - x.range()[0]) {
+            return "start";
+        }
+        return "end";
+    });
+
+    d3.selectAll(".y-axis > .tick text").transition().delay(500).duration(1).attr("x", function (d, i) {
+        return label_pos[i] == "start" ? x(Math.max(sorted_topics[i][1]["male"], sorted_topics[i][1]["female"])) + 5 : x(Math.min(sorted_topics[i][1]["male"], sorted_topics[i][1]["female"])) - 5;
+    }).style("text-anchor", function (d, i) {
+        return label_pos[i];
+    });
 
     // Hide axis line and ticks
     d3.select(".y-axis > path").style("opacity", 0);
@@ -1953,10 +2469,7 @@ function sixth_slide() {
 
     var t0 = d3.transition().duration(1000);
 
-    // Make y-axis topic labels all uppercase
-    d3.selectAll(".y-axis > .tick text").style("text-transform", "uppercase");
-
-    // Only do the ollowing steps if we'e coming from slide 5
+    // Only do the following steps if we'e coming from slide 5 for the first time
     if (lastTransitioned == 4) {
         // Only show selected topic's label for now
         d3.selectAll(".y-axis > .tick text").style("opacity", function (d) {
@@ -2012,7 +2525,7 @@ function sixth_slide() {
 
         chartTitle.transition().text("Gender bias of topics");
 
-        xLabel.text("Average % of time spent on topic").style("opacity", 1);
+        xLabel.text("Relative gender bias").style("opacity", 1);
 
         gX.style("opacity", 1);
         gY.style("opacity", 1);
@@ -2064,13 +2577,16 @@ function sixth_slide() {
             return x(d[1]["female"]);
         });
 
+        // Make all axis tick labels visible
+        d3.selectAll(".y-axis > .tick text").transition(t1).delay(function (d, i) {
+            return 1800 + i * 50;
+        }).style("opacity", 1);
+
         var t2 = t1.transition().delay(2500).on("end", function () {
             slide6Group.selectAll(".topic-" + sorted_topics.map(function (d) {
                 return d[0];
             }).indexOf(selected_topic)).attr("opacity", 1);
             slide6Group.selectAll(".tmp").remove();
-            // Make all axis tick labels visible
-            d3.selectAll(".y-axis > .tick text").style("opacity", 1).style("transition", "opacity 0.2s ease-in-out");
         });
 
         // Hover rects to catch mouseovers
@@ -2091,8 +2607,8 @@ function sixth_slide() {
 
         // Switch to relative change view
         var t3 = t2.transition().delay(1000).on("end", function () {
-            x.domain([-0.04, 0.04]);
-            xAxis = d3.axisBottom(x).tickFormat(function (d) {
+            x.domain([-1.5, 1.5]);
+            xAxis = d3.axisBottom(x).ticks(6).tickFormat(function (d) {
                 return (d * 100).toFixed(0) + "%";
             });
             gX.transition().call(xAxis).on("end", function () {
@@ -2101,43 +2617,44 @@ function sixth_slide() {
                 slide6Group.selectAll(".median-connector").transition(t_).delay(function (d, i) {
                     return i * 50;
                 }).attr("x1", function (d) {
-                    return x(d[1]["female"] - d[1]["male"]);
+                    return x(d[1]["female"] > d[1]["male"] ? d[1]["female"] / d[1]["male"] - 1 : -d[1]["male"] / d[1]["female"] + 1);
                 }).attr("x2", x(0));
 
                 slide6Group.selectAll(".female-median").transition(t_).delay(function (d, i) {
                     return i * 50;
                 }).attr("cx", function (d) {
-                    return d[1]["female"] - d[1]["male"] > 0 ? x(d[1]["female"] - d[1]["male"]) : x(0);
+                    return d[1]["female"] > d[1]["male"] ? x(d[1]["female"] / d[1]["male"] - 1) : x(0);
                 });
 
                 slide6Group.selectAll(".male-median").transition(t_).delay(function (d, i) {
                     return i * 50;
                 }).attr("cx", function (d) {
-                    return d[1]["female"] - d[1]["male"] < 0 ? x(d[1]["female"] - d[1]["male"]) : x(0);
-                }).on("end", function () {
-                    return d3.selectAll(".y-axis > .tick text").style("opacity", 0);
+                    return d[1]["female"] < d[1]["male"] ? x(-d[1]["male"] / d[1]["female"] + 1) : x(0);
                 });
 
-                xLabel.text("Median female - Median male");
+                d3.selectAll(".y-axis > .tick text").style("opacity", 0);
 
-                wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + margin.bottom).text("FEMALE FRIENDLY").style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
+                xLabel.text("Relative gender bias");
 
-                wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + margin.bottom).text("MALE FRIENDLY").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
+                wrapper.selectAll(".x-custom-label").remove();
+                wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text("Discussed more by women" + (isMobile ? "→" : " ⟶")).style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
+
+                wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text((isMobile ? "←" : "⟵ ") + "Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
             });
         });
         var t4 = t3.transition();
     } else {
         // Switch to relative change view in case this was skipped before
         slide6Group.selectAll(".median-connector").attr("x1", function (d) {
-            return x(d[1]["female"] - d[1]["male"]);
+            return x(d[1]["female"] > d[1]["male"] ? d[1]["female"] / d[1]["male"] - 1 : -d[1]["male"] / d[1]["female"] + 1);
         }).attr("x2", x(0));
 
         slide6Group.selectAll(".female-median").attr("cx", function (d) {
-            return d[1]["female"] - d[1]["male"] > 0 ? x(d[1]["female"] - d[1]["male"]) : x(0);
+            return d[1]["female"] > d[1]["male"] ? x(d[1]["female"] / d[1]["male"] - 1) : x(0);
         });
 
         slide6Group.selectAll(".male-median").attr("cx", function (d) {
-            return d[1]["female"] - d[1]["male"] < 0 ? x(d[1]["female"] - d[1]["male"]) : x(0);
+            return d[1]["female"] < d[1]["male"] ? x(-d[1]["male"] / d[1]["female"] + 1) : x(0);
         });
 
         // Now fade in the slide
@@ -2145,24 +2662,208 @@ function sixth_slide() {
             slide6Group.style("opacity", 1);
         });
 
-        wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + margin.bottom).text("FEMALE FRIENDLY").style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
+        wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + margin.bottom).text("Discussed more by women ⟶").style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
 
-        wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + margin.bottom).text("MALE FRIENDLY").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
+        wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + margin.bottom).text("⟵ Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
     }
 
-    var label_pos = sorted_topics.map(function (d) {
+    label_pos = sorted_topics.map(function (d) {
         return d[1]["female"] - d[1]["male"] > 0;
     });
 
     d3.selectAll(".y-axis > .tick text").filter(function (d) {
         return Object.keys(topic_medians_data).indexOf(d) != -1;
     }).transition(t4).delay(function () {
-        return no_transition ? 0 : 3000;
-    }).duration(no_transition ? 1 : 1000).style("text-anchor", function (d, i) {
+        return no_transition ? 0 : 2000;
+    }).duration(no_transition ? 1 : 0).style("text-anchor", function (d, i) {
         return label_pos[i] ? "end" : "start";
     }).attr("x", function (d, i) {
-        return label_pos[i] ? x.domain([-0.04, 0.04])(-0.001) : x.domain([-0.04, 0.04])(0.001);
-    }).transition().delay(500).duration(500).style("opacity", 1);
+        return label_pos[i] ? x.domain([-0.06, 0.06])(-0.001) : x.domain([-0.06, 0.06])(0.001);
+    }).transition().delay(1000).duration(500).style("opacity", 1);
+}
+
+// ----------------------------------------------------------------------------
+// TRANSITION TO SEVENTH SLIDE, EITHER WITH OR WITHOUT FANCY TRANSITIONS
+// ----------------------------------------------------------------------------
+function to_seventh_slide(current_slide) {
+    "use strict";
+
+    var t0 = svg.transition().duration(1000);
+
+    // Different actions depending on which slide we're coming from
+    switch (current_slide) {
+        case 0:
+            // If we're coming from the first slide
+            t0.select("#slide1-group").style("opacity", 0).remove();
+            break;
+
+        case 1:
+            // If we're coming from the second slide
+            d3.select("#slide2-group").style("opacity", 0);
+            break;
+
+        case 2:
+            // Fade all objects belonging to third slide
+            d3.select("#slide2-group").style("opacity", 0);
+
+            t0.select("#slide3-group").style("opacity", 0).on("end", function () {
+                this.remove();
+            });
+
+            d3.select("#tooltip").classed("slide3-tooltip", false).classed("slide5-tooltip", false);
+            break;
+
+        case 3:
+            d3.select("#slide4").style("opacity", 0).transition().delay(1000).on("end", function () {
+                this.remove();
+            });
+            break;
+
+        case 4:
+            chartTitle.style("opacity", 1);
+            d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis").remove();
+
+            d3.select(".switch").style("opacity", 0);
+            if (document.getElementById("zoom-checkbox") != null) {
+                if (document.getElementById("zoom-checkbox").checked != false) {
+                    document.getElementById("zoom-checkbox").click();
+                }
+            }
+            // Remove existing annotations
+            mouseover_svg.selectAll(".female-label, .male-label").remove();
+            // Hide mouseover circle
+            mouseover_svg.select("circle").style("opacity", 0);
+            break;
+        case 5:
+            // Fade out sixth slide
+            d3.selectAll("#slide6-group, .x-custom-label").style("opacity", 0).on("end", function () {
+                d3.selectAll(".x-custom-label").remove();
+            });
+
+    }
+
+    // Fade tooltip
+    d3.select("#tooltip").transition(t0).style("opacity", 0).on("end", function () {
+        this.innerHTML = "";
+    });
+
+    // Remove Election rectangles
+    electionRects.transition(t0).style("opacity", 0).remove();
+
+    canvas.style("opacity", 0).style("display", "none").style("pointer-events", "none");
+
+    // Change axes
+    x = d3.scaleBand().range([0, width]).domain(parliamentary_candidates_data.map(function (d) {
+        return d.year;
+    })).paddingInner(0.2);
+    xAxis = d3.axisBottom(x);
+    gX.transition(t0).call(xAxis).style("opacity", 1).on("end", function () {
+        d3.selectAll(".x-axis path").style("opacity", 0);
+        if (isMobile) {
+            d3.selectAll(".x-axis text").attr("transform", "rotate(-45)").attr("text-anchor", "end").attr("dx", -5);
+        }
+    });
+    y = d3.scaleLinear().domain([0, 500]).range([height, 0]);
+    yAxis = d3.axisRight(y).ticks(5).tickFormat(function (d) {
+        return d;
+    });
+    gY.style("opacity", 0);
+
+    d3.timeout(function () {
+        gY.transition(t0).call(yAxis).attr("transform", "translate(" + width + ", 0)").style("opacity", 1);
+    }, 1000);
+
+    xLabel.style("opacity", 1);
+    yLabel.style("opacity", 1);
+    // Increment lastTransitioned counter if it is less than 0
+    if (lastTransitioned < 6) {
+        t0.on("end", function () {
+            seventh_slide(false);
+            lastTransitioned = 6;
+        });
+    } else {
+        t0.on("end", function () {
+            return seventh_slide(true);
+        });
+    }
+}
+
+// ----------------------------------------------------------------------------
+// ███████╗███████╗██╗   ██╗███████╗███╗   ██╗████████╗██╗  ██╗    ███████╗██╗     ██╗██████╗ ███████╗
+// ██╔════╝██╔════╝██║   ██║██╔════╝████╗  ██║╚══██╔══╝██║  ██║    ██╔════╝██║     ██║██╔══██╗██╔════╝
+// ███████╗█████╗  ██║   ██║█████╗  ██╔██╗ ██║   ██║   ███████║    ███████╗██║     ██║██║  ██║█████╗
+// ╚════██║██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║   ██║   ██╔══██║    ╚════██║██║     ██║██║  ██║██╔══╝
+// ███████║███████╗ ╚████╔╝ ███████╗██║ ╚████║   ██║   ██║  ██║    ███████║███████╗██║██████╔╝███████╗
+// ╚══════╝╚══════╝  ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝    ╚══════╝╚══════╝╚═╝╚═════╝ ╚══════╝
+// SHOW CANDIDATES RUNNING IN 2018
+// ----------------------------------------------------------------------------
+function seventh_slide() {
+    var no_transition = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
+    // If we've already visited this slide, set no_transition to true
+    no_transition = lastTransitioned >= 6;
+
+    xLabel.text("Year");
+    yLabel.text("Number of Female Parliamentary Candidates");
+    chartTitle.text("Female Parliamentary Candidates over Time");
+
+    if (no_transition) {
+        var slide7Group = d3.select("#slide7-group").style("opacity", 1);
+    } else {
+
+        d3.select("#slide7-group").selectAll("*").remove();
+
+        slide7Group = zoomedArea.append("g").attr("id", "slide7-group");
+
+        var bar_stack = slide7Group.append("g").selectAll("g").data(d3.stack().keys(["labour_candidates", "conservative_candidates"])(parliamentary_candidates_data)).enter().append("g").attr("fill", function (d) {
+            return d.key == "labour_candidates" ? colors["Labour"] : colors["Conservative"];
+        });
+
+        bar_stack.selectAll("rect").data(function (d) {
+            return d;
+        }).enter().append("rect").attr("x", function (d) {
+            return x(d.data.year);
+        }).attr("y", height).attr("height", 0).attr("width", x.bandwidth()).transition().duration(500).delay(function (d, i) {
+            return i * 100;
+        }).attr("y", function (d) {
+            return y(d[1]);
+        }).attr("height", function (d) {
+            return y(d[0]) - y(d[1]);
+        });
+
+        // Add some text labels for the values
+        bar_stack.selectAll("text").data(function (d) {
+            return d;
+        }).enter().append("text").classed("bar-label", true).attr("x", function (d) {
+            return x(d.data.year) + x.bandwidth() / 2;
+        }).attr("y", function (d) {
+            return y(d[1]);
+        }).attr("dy", 10).attr("dominant-baseline", "hanging").style("opacity", 0).text(function (d) {
+            return d[1] - d[0];
+        }).transition().duration(1).delay(function (d, i) {
+            return 500 + i * 100;
+        }).style("opacity", 1);
+    }
+
+    // Label 2018 election
+    var make_2018_label = d3.annotation().type(d3.annotationCallout).annotations([{
+        note: {
+            title: "Record number of women in 2018 ????",
+            wrap: 250
+        },
+        connector: {
+            end: "dot"
+        },
+        //can use x, y directly instead of data
+        x: x(2018) + x.bandwidth() / 2,
+        y: y(320),
+        dx: x(2014) - x(2018),
+        dy: y(370) - y(320)
+    }]);
+
+    d3.timeout(function () {
+        slide7Group.append("g").attr("class", "i2018-label").call(make_2018_label);
+    }, 14 * 100 + 500);
 }
 
 // ----------------------------------------------------------------------------
@@ -2184,8 +2885,6 @@ function download_data() {
             term_start: parseDate(d.term_start),
             term_end: parseDate(d.term_end),
             party: d.party,
-            byelection: d.byelection == "TRUE",
-            notes: d.notes,
             clean_name: d.clean_name,
             stream: +d.stream
         };
@@ -2250,13 +2949,19 @@ function download_data() {
             women_pct: +d.women_parliament,
             country: d.country
         };
-    }).defer(d3.csv, "baked_positions.csv" + "?" + Math.floor(Math.random() * 1000)).defer(d3.csv, "topic_medians.csv" + "?" + Math.floor(Math.random() * 100), function (d) {
+    }).defer(d3.csv, "baked_positions.csv").defer(d3.csv, "topic_medians.csv", function (d) {
         return {
             topic: d.topic,
             male: Math.pow(10, +d.male),
             female: Math.pow(10, +d.female)
         };
-    }).await(function (error, women_in_govt, baked_mp_positions, topic_medians) {
+    }).defer(d3.csv, "number_women_parliamentary_candidates_over_time.csv", function (d) {
+        return {
+            year: +d.Year,
+            labour_candidates: +d.Lab_Candidates,
+            conservative_candidates: +d.Con_Candidates
+        };
+    }).await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates) {
         // Group stats by country
         women_in_govt_data = d3.nest().key(function (d) {
             return d.country;
@@ -2283,6 +2988,7 @@ function download_data() {
                         "full_name": row["full_name"],
                         "party": row["Party"],
                         "gender": row["is_female"] == 1 ? "Female" : "Male",
+                        "search_string": (row["full_name"] + " " + row["constituency"] + " " + row["party"][0] + "-" + row["constituency"]).toLowerCase(),
                         "topic": topic,
                         "x": +row[topic + "_x"],
                         "y": +row[topic + "_y"] / 100
@@ -2294,6 +3000,8 @@ function download_data() {
         baked_positions_data = d3.nest().key(function (d) {
             return d.topic;
         }).entries(baked_positions_data);
+
+        parliamentary_candidates_data = parliamentary_candidates;
     });
 }
 
@@ -2332,9 +3040,9 @@ function handleContainerExit(response) {
     $graphic.classed("is-fixed", false);
     $graphic.classed("is-bottom", response.direction === "down");
 
-    if (response.direction == "down" && lastTransitioned >= 4) {
-        // Go to sixth slide
-        new_slide = 5;
+    if (response.direction == "down" && lastTransitioned >= 5) {
+        // Go to seventh slide
+        new_slide = 7;
         update_state();
     }
 }
@@ -2383,9 +3091,17 @@ function handleStepEnter(response) {
     $step.classed("is-active", function (d, i) {
         return i === response.index;
     });
+    if (d3.select(".is-active").node().innerText != "") {
+        d3.select(".is-active").style("opacity", 1);
+    }
 
     // Hide tooltip
     d3.select("#tooltip").style("opacity", 0);
+
+    // Remove any annotations
+    d3.selectAll(".annotation-group").remove();
+    // Remove existing labels
+    mouseover_svg.selectAll(".female-label, .male-label").remove();
 
     // go to next slide based on slide attribute
     new_slide = +$step.nodes()[response.index].getAttribute("data-slide");
@@ -2404,7 +3120,16 @@ function handleStepEnter(response) {
     // Run different functions depending on slide and step no.
     switch (current_slide) {
         case 0:
+            mouseover_svg.select("line").style("opacity", 0);
             switch (new_step) {
+                case -1:
+                    if (response.direction == "up") {
+                        // Hide election rects
+                        electionRects.transition().delay(function (d, i) {
+                            return (electionRects.nodes().length - i) * 50;
+                        }).style("opacity", 0);
+                    }
+                    break;
                 case 0:
                     if (response.direction == "up") {
 
@@ -2423,6 +3148,23 @@ function handleStepEnter(response) {
                     electionRects.filter(function (d, i) {
                         return i == 22;
                     }).classed("hover", true).style("opacity", null);
+
+                    var makeAnnotations = d3.annotation().type(d3.annotationCallout).annotations([{
+                        note: {
+                            title: "New Labour landslide election"
+                        },
+                        connector: {
+                            end: "dot"
+                        },
+                        //can use x, y directly instead of data
+                        x: x(new Date(1999, 1, 1)),
+                        y: y(100),
+                        dx: isMobile ? -50 : -100,
+                        dy: -200
+                    }]);
+
+                    wrapper.append("g").attr("class", "annotation-group").call(makeAnnotations);
+
                     break;
                 case 0.2:
                     if (response.direction == "up") {
@@ -2508,11 +3250,13 @@ function handleStepEnter(response) {
 
                     d3.select(".switch").style("opacity", 1).on("mouseover", function () {
                         d3.select("#tooltip").style("opacity", 0);
+                        d3.selectAll(".annotation-group").remove();
                     }).select("#zoom-checkbox").on("change", function () {
                         if (this.checked) {
                             zoom.on("zoom", zoomed);
                             canvas.call(zoom);
                             d3.select(".is-active").style("opacity", 0);
+                            d3.select(".switch").select("label").text("Stop zooming");
                         } else {
                             reset_zoom();
                             d3.select(".is-active").filter(function () {
@@ -2533,27 +3277,80 @@ function handleStepEnter(response) {
                             all_mps_draw_timer.stop();
                             mpZoom("constancemarkievicz", "mid", 10, 0, width / 4);
                         }, 1000);
+                        var zooming = true;
                     } else {
                         // First step: zoom into first mp
                         all_mps_draw_timer.stop();
                         mpZoom("constancemarkievicz", "mid", 10, 0, width / 4);
                     }
+                    // Annotate Jeannette
+                    annotate_timer = d3.timeout(function () {
+                        var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
+
+                        makeAnnotations = d3.annotation().type(d3.annotationCallout).annotations([{
+                            note: {
+                                title: "Constance Markievicz"
+                            },
+                            //can use x, y directly instead of data
+                            x: line_pos.x + line_pos.width / 2,
+                            y: line_pos.y + line_pos.height / 2,
+                            dx: isMobile ? 30 : 100,
+                            dy: 100
+                        }]);
+                        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+                    }, zooming ? 2000 : 1000);
+
                     canvas.style("pointer-events", "none");
                     break;
 
                 case 2:
                     // Second step: first mp to take seat
                     mpZoom("nancyastor");
+                    annotate_timer.stop();
+                    // Annotate Patsy
+                    annotate_timer = d3.timeout(function () {
+                        var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
+
+                        makeAnnotations = d3.annotation().type(d3.annotationCallout).annotations([{
+                            note: {
+                                title: "Nancy Astor"
+                            },
+                            //can use x, y directly instead of data
+                            x: line_pos.x + line_pos.width / 2,
+                            y: line_pos.y + line_pos.height / 2,
+                            dx: isMobile ? 30 : 100,
+                            dy: 200
+                        }]);
+                        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+                    }, 1000);
                     canvas.style("pointer-events", "none");
                     break;
 
                 case 4:
                     // Fourth step: first prime minister
                     mpZoom("margaretthatcher");
+                    annotate_timer.stop();
+                    annotate_timer = d3.timeout(function () {
+                        var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
+
+                        makeAnnotations = d3.annotation().type(d3.annotationCallout).annotations([{
+                            note: {
+                                title: "Shirley Chisholm"
+                            },
+                            //can use x, y directly instead of data
+                            x: line_pos.x + line_pos.width / 2,
+                            y: line_pos.y + line_pos.height / 2,
+                            dx: isMobile ? 30 : 100,
+                            dy: 200
+                        }]);
+                        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+                    }, 1000);
+
                     canvas.style("pointer-events", "none");
                     break;
 
                 case 5:
+                    annotate_timer.stop();
                     canvas.style("pointer-events", "all");
                     d3.select(".switch").style("opacity", 1);
 
@@ -2685,6 +3482,7 @@ function handleStepEnter(response) {
             break;
 
         case 1:
+            // Second slide
             d3.select(".switch").style("opacity", 0);
             if (document.getElementById("zoom-checkbox").checked != false) {
                 document.getElementById("zoom-checkbox").click();
@@ -2694,9 +3492,12 @@ function handleStepEnter(response) {
                 case 0:
                     if (response.direction == "up") {
                         yLabel.transition().text("Number of MPs");
-                        chartTitle.transition().text("MPs in the House of Commons");
+                        chartTitle.transition().text("Representatives in Congress");
+
+                        slide2Group.select(".party-label").transition().text("");
                         // All MPs first
-                        y.domain([0, 750]);
+                        y.domain([0, 450]);
+                        yAxis = d3.axisRight(y);
                         gY.transition().call(yAxis);
 
                         max_mps_line.y(function (d) {
@@ -2713,6 +3514,11 @@ function handleStepEnter(response) {
                             return y(d.total_mps / 2);
                         });
                         half_max_mps_path.transition().attr("d", half_max_mps_line);
+
+                        half_max_mps_line_smooth.y(function (d) {
+                            return y(d.total_mps / 2 + 3.5);
+                        });
+                        text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                         total_women_mps_line.y(function (d) {
                             return y(d.total_women_mps);
@@ -2733,19 +3539,24 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text("MPs in the Labour Party");
 
+                    slide2Group.select(".party-label").transition().text("Labour");
+
                     y.domain([0, 100]);
+                    yAxis = d3.axisRight(y).tickFormat(function (d) {
+                        return d;
+                    });
                     gY.transition().call(yAxis);
 
                     max_mps_line.y(y(100));
                     max_mps_path.transition().attr("d", max_mps_line);
                     max_mps_area.y1(y(100));
-                    max_mps_path_area.transition().attr("d", max_mps_area).style("fill", colors["Labour"]);
+                    max_mps_path_area.transition().attr("d", max_mps_area).style("fill", colors["Labour"]).style("opacity", 1);
                     mask.transition().attr("d", max_mps_area);
 
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(52));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -2765,19 +3576,24 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text("MPs in the Conservative Party");
 
+                    slide2Group.select(".party-label").transition().text("Conservative");
+
                     y.domain([0, 100]);
+                    yAxis = d3.axisRight(y).tickFormat(function (d) {
+                        return d;
+                    });
                     gY.transition().call(yAxis);
 
                     max_mps_line.y(y(100));
                     max_mps_path.transition().attr("d", max_mps_line);
                     max_mps_area.y1(y(100));
-                    max_mps_path_area.transition().attr("d", max_mps_area).style("fill", colors["Conservative"]);
+                    max_mps_path_area.transition().attr("d", max_mps_area).style("fill", colors["Conservative"]).style("opacity", 1);
                     mask.transition().attr("d", max_mps_area);
 
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(52));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -2797,19 +3613,24 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text(isMobile ? "MPs in the Lib Dems and SNP" : "MPs in the Liberal Democrats and Scottish National Party");
 
+                    slide2Group.select(".party-label").transition().text("Lib Dem/SNP");
+
                     y.domain([0, 100]);
+                    yAxis = d3.axisRight(y).tickFormat(function (d) {
+                        return d;
+                    });
                     gY.transition().call(yAxis);
 
                     max_mps_line.y(y(100));
                     max_mps_path.transition().attr("d", max_mps_line);
                     max_mps_area.y1(y(100));
-                    max_mps_path_area.transition().attr("d", max_mps_area).style("fill", colors["LD"]);
+                    max_mps_path_area.transition().attr("d", max_mps_area).style("fill", colors["LD"]).style("opacity", 1);
                     mask.transition().attr("d", max_mps_area);
 
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(52));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -2829,6 +3650,8 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text("MPs in the House of Commons");
 
+                    slide2Group.select(".party-label").transition().text("");
+
                     y.domain([0, 100]);
                     gY.transition().call(yAxis);
 
@@ -2841,7 +3664,7 @@ function handleStepEnter(response) {
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(52));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -2860,15 +3683,19 @@ function handleStepEnter(response) {
             break;
 
         case 3:
+            // Fourth slide (no data, just text)
             d3.select("#slide4").style("display", "none");
             d3.select(".switch").style("opacity", 0);
-            if (document.getElementById("zoom-checkbox").checked != false) {
-                document.getElementById("zoom-checkbox").click();
+            if (document.getElementById("zoom-checkbox") != null) {
+                if (document.getElementById("zoom-checkbox").checked != false) {
+                    document.getElementById("zoom-checkbox").click();
+                }
             }
             chartTitle.transition().text("");
             break;
 
         case 4:
+            // Fifth slide
             d3.select("#slide4").style("display", "none");
             switch (new_step) {
                 case 0:
@@ -2992,6 +3819,14 @@ function draw_graph() {
     //     })
 
 
+    // These are the margins for the SVG
+
+    margin = {
+        top: 50,
+        left: 25,
+        bottom: 30,
+        right: timeline.clientWidth < 500 ? 50 : 70
+    };
     var new_width = timeline.clientWidth - margin.left - margin.right,
         new_height = timeline.clientHeight - margin.top - margin.bottom;
 

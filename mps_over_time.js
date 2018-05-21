@@ -23,14 +23,6 @@
 //  ╚═════╝ ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝      ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝
 // ----------------------------------------------------------------------------
 
-// These are the margins for the SVG
-var margin = {
-    top: 50,
-    right: 20,
-    bottom: 30,
-    left: 70
-}
-
 // These are the colours used to identify each political party as well as
 // a few additional functions
 var colors = {
@@ -42,6 +34,7 @@ var colors = {
     "Scottish National Party": "#FCCA46",
     "Lib Dem": "#F37A48",
     "Liberal Democrat": "#F37A48",
+    "Liberal": "#F37A48",
     "LD": "#F37A48",
     "Green": "#A1C181",
     "SF": "#008e4b",
@@ -114,7 +107,8 @@ var detachedContainer = document.createElement("custom")
 var dataContainer = d3.select(detachedContainer)
 
 var width = 0,
-    height = 0
+    height = 0,
+    margin
 
 var ratio,
     clippedArea,
@@ -155,9 +149,11 @@ var ratio,
     circle_female,
     slide5_xScale,
     slide5_yScale,
+    temp_nodes,
     mp_filter,
     isMobile,
-    all_mps_draw_timer
+    all_mps_draw_timer,
+    annotate_timer
 
 var mps_over_time_data,
     number_women_over_time_data,
@@ -166,6 +162,7 @@ var mps_over_time_data,
     mp_base64_data,
     topic_medians_data,
     baked_positions_data,
+    parliamentary_candidates_data,
     nodes_male,
     nodes_female
 
@@ -280,13 +277,15 @@ function reset_zoom(callback, current_slide) {
 
 
             // Add the y axis to the left of the graph
-            yAxis = d3.axisLeft(y)
+            // yAxis = d3.axisLeft(y)
             gY = d3.select(".y-axis")
                 .call(yAxis)
             if (typeof (callback) != "undefined") {
                 callback(current_slide)
             }
         })
+
+    d3.select(".switch").select("label").text("Make it zoomable")
 }
 // ----------------------------------------------------------------------------
 // UPDATE GRAPH WHEN USER MOVES TO A NEW SLIDE
@@ -314,6 +313,9 @@ function update_state() {
         } else if (new_slide == 5) {
             // Load sixth slide
             reset_zoom(to_sixth_slide, current_slide)
+        } else if (new_slide == 6) {
+            // Load seventh slide
+            reset_zoom(to_seventh_slide, current_slide)
         } else if (current_slide != -1 & new_slide == 0) {
             // Add zoom capabilities for the points
             zoom.on("zoom", zoomed)
@@ -423,10 +425,11 @@ function initial_render() {
         .call(xAxis)
 
     // Add the y axis to the left of the graph
-    yAxis = d3.axisLeft(y)
+    yAxis = d3.axisRight(y)
     gY = wrapper.append("g")
         .attr("class", "y-axis")
         .call(yAxis)
+        .attr("transform", "translate(" + width  + ", 0)")
 
     // Add chart title
     chartTitle = svg.append("text")
@@ -440,17 +443,18 @@ function initial_render() {
     xLabel = svg.append("text")
         .attr("transform",
             "translate(" + (width + margin.left + margin.right) / 2 + " ," +
-            (height + margin.top + margin.bottom) + ")")
+            (height + margin.top + margin.bottom*1.3) + ")")
         .attr("class", "x-label")
         .style("text-anchor", "middle")
-        .text("Time")
+        .text("Year")
 
     yLabel = svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", margin.left / 3)
+        .attr("y", width + margin.left + margin.right*3/4)
         .attr("x", 0 - (height + margin.top + margin.bottom) / 2)
         .attr("class", "y-label")
-        .text("Number of Women MPs")
+        .attr("dominant-baseline", "baseline")
+        .text("Number of Female MPs")
 
     // Add zoom capabilities for the points
     zoom = d3.zoom()
@@ -643,15 +647,6 @@ function first_slide(no_transition = false) {
                 // and(2) map the colour to the node in the colourToNode-map.
                 return d.hiddenCol
             })
-        // .transition()
-        // .delay((d, i) => 500 + i * 2)
-        // .duration(1000)
-        // .attr("y1", (d) => y(d.stream))
-        // .attr("y2", (d) => y(d.stream))
-        // .transition()
-        // .delay((d, i) => 200 + i * 2)
-        // .duration(1000)
-        // .attr("x2", (d) => x(d.term_end) - lineThickness * 1.2)
     } else {
         dataContainer.selectAll("custom.line")
             .attr("x1", (d) => x(d.term_start))
@@ -681,6 +676,7 @@ function first_slide(no_transition = false) {
                 context.beginPath()
                 context.lineWidth = hidden ? lineThickness * 1.3 : lineThickness
                 context.strokeStyle = hidden ? node.attr("hiddenStrokeStyle") : node.attr("strokeStyle")
+                // Different thickness and shape for hidden layer
                 if (!hidden) {
                     context.lineCap = "round"
                     context.moveTo(node.attr("x1"), node.attr("y1"))
@@ -761,13 +757,34 @@ function show_mp_tooltip(nodeData, mousePos) {
             mousePos = [width / 2, 0]
         }
     }
+
+    // Interrupt previous transition
+    d3.select("#tooltip").interrupt()
+    // Hide tooltip on scroll but wait for window to settle first
+    d3.timeout(() => {
+        window.addEventListener("scroll", () => {
+            d3.select("#tooltip")
+                .style("opacity", 0)
+                // Get rid of annotation line too
+            d3.selectAll(".annotation-group").remove()
+
+        }, { once: true })
+    }, 1000)
+    // Hide tooltip after 5 secs
+    d3.select("#tooltip").transition().delay(5000)
+        .style("opacity", 0)
+        .on("end", () => {
+            // Get rid of annotation line too
+            d3.selectAll(".annotation-group").remove()
+        })
+
     // Display tooltip
     d3.select("#tooltip")
         .style("opacity", 1)
-        .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2,
+        .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth/2,
             width - tooltip.offsetWidth - margin.right),
-        0 + margin.left/2)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20,
-            height + tooltip.offsetHeight - 20), margin.top)}px)`)
+        0 + margin.left)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight * 2 - 20,
+            height + tooltip.offsetHeight * 2 - 20), margin.top)}px)`)
         .style("pointer-events", "none")
 
     var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1
@@ -812,6 +829,42 @@ function show_mp_tooltip(nodeData, mousePos) {
         .attr("y2", (d) => y(d.stream))
         .style("stroke-width", lineThickness)
         .style("opacity", 1)
+
+    d3.timeout(() => {
+        // Point to MP
+        var tooltip_pos = tooltip.getBoundingClientRect()
+        // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+        //     width - tooltip.offsetWidth - margin.right),
+        // 0 + margin.left), width: tooltip.offsetWidth, bottom: Math.max(Math.min(mousePos[1] - 20,
+        //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
+        var line_pos = mouseover_svg.select("line").node().getBoundingClientRect()
+
+        d3.selectAll(".annotation-group").remove()
+
+        var makeAnnotations = d3.annotation()
+            .type(d3.annotationLabel)
+            .annotations([{
+                note: {
+                    title: "...."
+                },
+                connector: {
+                    end: "dot"
+                },
+                //can use x, y directly instead of data
+                x: line_pos.x + line_pos.width/2,
+                y: line_pos.y + line_pos.height/2,
+                dx: tooltip_pos.x + tooltip_pos.width/2 - line_pos.x,
+                dy: tooltip_pos.bottom - line_pos.y - 3
+            }])
+
+        mouseover_svg
+            .append("g")
+            .attr("class", "annotation-group")
+            .call(makeAnnotations)
+
+        // Hide label because we are using tooltip instead
+        mouseover_svg.selectAll(".annotation-group text").style("opacity", 0)
+    }, 300)
 }
 
 // ----------------------------------------------------------------------------
@@ -847,12 +900,18 @@ function to_first_slide(current_slide) {
         t0.select("#slide3-group")
             .style("opacity", 0)
             .remove()
+        d3.select("#tooltip")
+            .classed("slide3-tooltip", false)
+            .classed("slide5-tooltip", false)
+
         break
     }
 
     // Hide tooltip
     d3.select("#tooltip")
         .style("opacity", 0)
+    // Get rid of annotation line too
+    d3.selectAll(".annotation-group").remove()
 
     // Show canvas
     d3.select("#visible-canvas")
@@ -862,11 +921,13 @@ function to_first_slide(current_slide) {
     y.domain([0, 210])
     gY.transition()
         .duration(1000)
-        .call(yAxis)
+        .call(yAxis.tickFormat(d => d))
     xAxis.scale(x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)]))
     gX.transition()
         .duration(1000)
         .call(xAxis)
+
+    d3.selectAll(".x-axis path").style("opacity", 1)
 
     pointsGroup.style("opacity", 0)
     t0.select("#slide1-group")
@@ -913,15 +974,24 @@ function to_second_slide(current_slide) {
             t0.select("#slide3-group")
                 .style("opacity", 0)
                 .remove()
+
+            d3.select("#tooltip")
+                .classed("slide3-tooltip", false)
+                .classed("slide5-tooltip", false)
             break
 
         }
 
         // Scale axes to fit all data
-        xAxis.scale(x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)]))
+        x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)])
+        xAxis = d3.axisBottom(x)
+        if (isMobile) xAxis.ticks(5)
         gX.transition()
             .duration(1000)
             .call(xAxis)
+
+
+        d3.selectAll(".x-axis path").style("opacity", 1)
 
         add_election_rects(true)
         second_slide(true)
@@ -1046,6 +1116,7 @@ function second_slide(no_transition = false) {
         .datum(number_women_over_time_data)
         .attr("stroke-width", 1.5 * lineThickness)
         .attr("d", total_women_mps_line)
+        .style("opacity", 0)
 
     let path_node = total_women_mps_path.node()
     // path_node.style.transition = "none"
@@ -1090,6 +1161,8 @@ function second_slide(no_transition = false) {
     // Hide the tooltip
     d3.select("#tooltip")
         .style("opacity", 0)
+    // Get rid of annotation line too
+    d3.selectAll(".annotation-group").remove()
 
     // Hide the mouseover line
     mouseover_svg.select("line")
@@ -1234,6 +1307,7 @@ function second_slide(no_transition = false) {
 
     // Rescale y axis to include all MPs
     y.domain([0, 750])
+    yAxis = d3.axisRight(y)
 
     // Change y axis label
     yLabel
@@ -1249,10 +1323,8 @@ function second_slide(no_transition = false) {
         .text("MPs in the House of Commons")
 
     slide2Group.append("text")
-        .attr("x", x(new Date(2010, 1, 1)))
+        .attr("x", x(new Date(2017, 1, 1)))
         .attr("y", y(0) - 10 * lineThickness)
-        .attr("font-size", Math.min(y(number_women_over_time_data.slice(-1)[0].total_women_mps) / 4,
-            (x(new Date(2020, 1, 1)) - x(new Date(2000, 1, 1))) / 4))
         .attr("class", "women-label")
         .text("Women")
         .style("opacity", 0)
@@ -1281,7 +1353,7 @@ function second_slide(no_transition = false) {
         .delay(no_transition ? 0 : 5500 + 750)
         .duration(0)
         .attr("d", total_women_mps_line)
-        .style("opacity", 1)
+        // .style("opacity", 0)
 
     // Draw a line and area for the total number of MPs
     max_mps_path
@@ -1331,16 +1403,22 @@ function second_slide(no_transition = false) {
         .on("end", () => {
             // Add text labels for areas
             slide2Group.append("text")
-                .attr("x", x(new Date(2010, 1, 1)))
+                .attr("x", x(new Date(2017, 1, 1)))
                 .attr("y", y(500))
-                .attr("font-size", Math.min(y(number_women_over_time_data.slice(-1)[0].total_women_mps) / 4,
-                    (x(new Date(2020, 1, 1)) - x(new Date(2000, 1, 1))) / 4))
                 .attr("class", "men-label")
                 .text("Men")
                 .style("opacity", 0)
                 .transition()
                 .duration(no_transition ? 0 : 500)
                 .style("opacity", 1)
+
+            // Add text label for party
+            slide2Group.append("text")
+                .attr("x", x(new Date(1920, 1, 1)))
+                .attr("y", y(700))
+                .attr("class", "party-label")
+                .attr("alignment-baseline", "hanging")
+                .text("")
 
             // Add a smoothed 50% line to show halfway mark for gender and place text label on it
             half_max_mps_line_smooth = d3.line()
@@ -1350,7 +1428,7 @@ function second_slide(no_transition = false) {
                 .y(function (d) {
                     return y(d.total_mps / 2 + 2)
                 })
-                .curve(d3.curveBundle.beta(0.2))
+                .curve(d3.curveBundle.beta(0.4))
 
             // Add path for text to follow
             text_path_50_50 = slide2Group
@@ -1367,8 +1445,6 @@ function second_slide(no_transition = false) {
                 // .attr("y", y(630/2))
                 .attr("startOffset", "50%")
                 .attr("xlink:href", "#half-max-textpath")
-                .attr("font-size", Math.max(lineThickness * 10, Math.min(lineThickness * 20,
-                    (x(new Date(2020, 1, 1)) - x(new Date(2000, 1, 1))) / 6)))
                 .attr("class", "i5050-label")
                 .text("50:50 gender representation")
                 .style("opacity", 0)
@@ -1379,13 +1455,34 @@ function second_slide(no_transition = false) {
             // Use election rects to catch mouseovers and display information
             electionRects
                 .on("mouseover", function (d, i) {
+                    // Interrupt previous transition
+                    d3.select("#tooltip").interrupt()
+                    // Hide tooltip on scroll but wait for window to settle first
+                    d3.timeout(() => {
+                        window.addEventListener("scroll", () => {
+                            d3.select("#tooltip")
+                                .style("opacity", 0)
+                            // Get rid of annotation line too
+                            d3.selectAll(".annotation-group").remove()
+
+                        }, { once: true })
+                    }, 1000)
+                    // Hide tooltip after 5 secs
+                    d3.select("#tooltip").transition().delay(5000)
+                        .style("opacity", 0)
+                        .on("end", () => {
+                            // Get rid of annotation line too
+                            d3.selectAll(".annotation-group").remove()
+                        })
+
                     // Get mouse positions
                     var mousePos = d3.mouse(this)
 
                     d3.select("#tooltip")
                         .style("opacity", 1)
+                        .classed("slide3-tooltip", true)
                         .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2,
-                            width - tooltip.offsetWidth / 2 - margin.right),
+                            width - tooltip.offsetWidth - margin.right),
                         0 + margin.left)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20,
                             height + tooltip.offsetHeight - 20), margin.top)}px)`)
                         .style("pointer-events", "none")
@@ -1397,27 +1494,57 @@ function second_slide(no_transition = false) {
                     var second_election = total_mps_over_time_data[Math.min(total_mps_over_time_data.length - 1, i + 1)].year
                     if (chartTitle.text()
                         .includes("Labour")) {
-                        var num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].labour_women_mps
+                        // Take highest number of women who served during that time
+                        var num_women = Math.max(...number_women_over_time_data
+                            .filter(d => d.year > first_election && d.year <= second_election)
+                            .map(d => d.labour_women_mps))
                         var gender_ratio = d.labour_mps / num_women - 1
+                        tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
+                        ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
+                        For every <span class="female">female</span> Labour MP, there ${new Date() > second_election ? "were" : "are"}
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> Labour MPs.` :
+        "There were no Labour women in the House of Commons :("}
+                        </div>
+                        `
                     } else if (chartTitle.text()
                         .includes("Conservative")) {
-                        num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].conservative_women_mps
+                        num_women = Math.max(...number_women_over_time_data
+                            .filter(d => d.year > first_election && d.year <= second_election)
+                            .map(d => d.conservative_women_mps))
                         gender_ratio = d.conservative_mps / num_women - 1
+                        tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
+                        ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
+                        For every <span class="female">female</span> Conservative MP, there ${new Date() > second_election ? "were" : "are"}
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> Conservative MPs.` :
+        "There were no Conservative women in the House of Commons :("}
+                        </div>
+                        `
                     } else if (chartTitle.text()
                         .includes("Liberal")) {
-                        num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].lib_snp_women_mps
+                        num_women = Math.max(...number_women_over_time_data
+                            .filter(d => d.year > first_election && d.year <= second_election)
+                            .map(d => d.lib_snp_women_mps))
                         gender_ratio = d.lib_snp_mps / num_women - 1
+                        tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
+                        ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
+                        For every <span class="female">female</span> Lib Dem or SNP MP, there ${new Date() > second_election ? "were" : "are"}
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> Lib Dem or SNP MPs.` :
+        "There were no Lib Dem or SNP women in the House of Commons yet :("}
+                        </div>
+                        `
                     } else {
-                        num_women = number_women_over_time_data[bisect(number_women_over_time_data, first_election)].total_women_mps
+                        num_women = Math.max(...number_women_over_time_data
+                            .filter(d => d.year > first_election && d.year <= second_election)
+                            .map(d => d.total_women_mps))
                         gender_ratio = d.total_mps / num_women - 1
-                    }
-                    tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
+                        tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
         ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
             For every <span class="female">female</span> MP, there ${new Date() > second_election ? "were" : "are"}
                                 <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> MPs.` :
         "There were no women in the House of Commons yet :("}
                                 </div>
             `
+                    }
                 })
                 .on("mouseout", function () {
                     d3.select(this)
@@ -1449,7 +1576,15 @@ function to_third_slide(current_slide) {
             t0.select("#slide1-group")
                 .style("opacity", 0)
                 .remove()
+            yAxis = d3.axisRight(y)
+                .tickFormat(d => d)
             break
+        case 1:
+            // If we're coming from the second slide
+            yAxis = d3.axisRight(y)
+                .tickFormat(d => d)
+            break
+
         case 3:
             // If we're coming from the fourth slide
             d3.select("#slide4")
@@ -1464,13 +1599,17 @@ function to_third_slide(current_slide) {
                 .domain([new Date(1990, 1, 1), new Date(2017, 12, 1)])
             // Redraw axes
             xAxis = d3.axisBottom(x)
-            if (isMobile) xAxis.ticks(5)
+                .tickFormat(d => d3.timeFormat("%Y")(d))
+            if (isMobile) {
+                xAxis
+                    .tickValues(x.ticks(8).concat(x.domain()))
+            }
 
-            yAxis = d3.axisLeft(y)
+            yAxis = d3.axisRight(y)
                 .tickFormat(d => d)
 
             xLabel
-                .text("Time")
+                .text("Year")
                 .style("opacity", 1)
 
             yLabel
@@ -1488,14 +1627,15 @@ function to_third_slide(current_slide) {
             d3.select("#slide2-group")
                 .style("opacity", 1)
 
-            d3.selectAll(".i5050-label")
-                .attr("startOffset", "90%")
+            // Crop the 5050 line to 1990 onwards
+            text_path_50_50.datum(total_mps_over_time_data.slice(20))
 
             // Disable all pointer events for canvas
             canvas.style("pointer-events", "none")
             break
         }
 
+        d3.selectAll(".x-axis path").style("opacity", 1)
         third_slide(true)
     }
 }
@@ -1524,6 +1664,7 @@ function third_slide(no_transition = false) {
 
     chartTitle
         .transition()
+        .style("opacity", 1)
         .text("Parliaments in developed countries")
 
     // ----------------------------------------------------------------------------
@@ -1540,14 +1681,40 @@ function third_slide(no_transition = false) {
     y.domain([0, 100])
     gY
         .transition(t0)
-        .call(yAxis)
+        .call(yAxis.tickFormat(d => d))
 
     total_women_mps_line
         .y(d => y(d.women_pct))
 
     total_women_mps_path
+        .style("opacity", 1)
         .transition(t0)
         .attr("d", total_women_mps_line)
+
+    // Label this line
+    var make_country_label = d3.annotation()
+        .type(d3.annotationCallout)
+        .annotations([{
+            note: {
+                title: "United Kingdom"
+            },
+            connector: {
+                end: "arrow"
+            },
+            //can use x, y directly instead of data
+            x: x(new Date(2017, 1,1)),
+            y: y(31),
+            dx: x(new Date(2014,1,1)) - x(new Date(2017, 1,1)),
+            dy: y(10) - y(31)
+        }])
+
+    d3.timeout(() => {
+        slide3Group
+            .append("g")
+            .attr("class", "country-label")
+            .call(make_country_label)
+
+    }, no_transition ? 500 : 1000)
 
     total_women_mps_area
         .y1(d => y(d.women_pct))
@@ -1578,7 +1745,7 @@ function third_slide(no_transition = false) {
         .attr("d", half_max_mps_line)
 
     half_max_mps_line_smooth
-        .y(() => y(52))
+        .y(() => y(51))
 
     text_path_50_50
         .transition(t0)
@@ -1590,7 +1757,7 @@ function third_slide(no_transition = false) {
 
     yLabel
         .transition(t0)
-        .text("% of Women MPs")
+        .text("% of Female Representatives")
 
     // ----------------------------------------------------------------------------
     //  █████╗  ██████╗████████╗    ██████╗
@@ -1604,7 +1771,10 @@ function third_slide(no_transition = false) {
     var countryColors = d3.scaleOrdinal(d3.schemeCategory20)
 
     // Scale axis to focus on modern history
-    xAxis.scale(x.domain([new Date(1990, 1, 1), new Date(2017, 12, 1)]))
+    x.domain([new Date(1990, 1, 1), new Date(2017, 12, 1)])
+    xAxis.scale(x)
+
+    if(isMobile) xAxis.tickValues(x.ticks(8).concat(x.domain())).tickFormat(d => d3.timeFormat("%Y")(d))
 
     var t1 = t0.transition()
         .duration(no_transition ? 500 : 1000)
@@ -1693,6 +1863,7 @@ function third_slide(no_transition = false) {
 
     // Move tooltip to better location
     d3.select("#tooltip")
+        .classed("slide3-tooltip", true)
         .style("transform", `translate(${Math.max(Math.min(width/2 - tooltip.offsetWidth / 2,
             width - tooltip.offsetWidth - margin.right),
         0 + margin.left/2)}px,${Math.max(Math.min(- tooltip.offsetHeight - 20,
@@ -1717,8 +1888,8 @@ function third_slide(no_transition = false) {
                 tooltip.innerHTML = `
                             <div class="slide3-tooltip">
                                 <h1 style="background-color: ${d.values.slice(-1)[0].country == "United Kingdom" ? colors["Hover"] : countryColors(d.values.slice(-1)[0].country)}">${d.values.slice(-1)[0].country}</h1>
-                                For every <span class="female">female</span> MP, there were
-                                <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> MPs in ${d.values.slice(-1)[0].year.getFullYear()}.
+                                For every <span class="female">female</span> representative, there were
+                                <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> representatives in ${d.values.slice(-1)[0].year.getFullYear()}.
                             </div>`
             }
         })
@@ -1761,6 +1932,20 @@ function third_slide(no_transition = false) {
         .on("mouseout", mouseout)
 
     function mouseover(d) {
+        // Interrupt previous transition
+        d3.select("#tooltip").interrupt()
+        // Hide tooltip on scroll but wait for window to settle first
+        d3.timeout(() => {
+            window.addEventListener("scroll", () => {
+                d3.select("#tooltip")
+                    .style("opacity", 0)
+
+            }, { once: true })
+        }, 1000)
+        // Hide tooltip after 5 secs
+        d3.select("#tooltip").transition().delay(5000)
+            .style("opacity", 0)
+
         // If country line is on screen, then enable mouseover
         if (country_on_screen.indexOf(d.data.country) > -1) {
             // Get mouse positions
@@ -1796,7 +1981,7 @@ function third_slide(no_transition = false) {
     function mouseout(d) {
         if (country_on_screen.indexOf(d.data.country) > -1) {
             d.line
-                .attr("stroke-width", d => d.key == "United Kingdom" ? 1.5 * lineThickness : lineThickness / 2)
+                .attr("stroke-width", d => d.key == "United Kingdom" ? 0.75 * lineThickness : lineThickness / 4)
                 .style("opacity", d => d.key == "United Kingdom" ? 1.0 : 0.5)
             // focus.attr("transform", "translate(-100,-100)")
         }
@@ -1837,11 +2022,16 @@ function to_fourth_slide(current_slide) {
         d3.select("#slide2-group")
             .style("opacity", 0)
 
-        t0.select("#slide3-group")
+        d3.select("#slide3-group")
             .style("opacity", 0)
-            .on("end", function() {
-                this.remove()
+        t0
+            .on("end", function () {
+                d3.select("#slide3-group")
+                    .remove()
             })
+        d3.select("#tooltip")
+            .classed("slide3-tooltip", false)
+            .classed("slide5-tooltip", false)
         break
     case 4:
         // Fade canvas
@@ -1854,7 +2044,7 @@ function to_fourth_slide(current_slide) {
             .select("circle")
             .style("opacity", 0)
 
-        d3.selectAll("#topic-label, .slide5-dropdown, .x-custom-axis, .switch")
+        d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis, .switch")
             .style("opacity", 0)
             .transition()
             .delay(500)
@@ -1925,12 +2115,13 @@ function to_fifth_slide(current_slide) {
         t0.select("#slide3-group")
             .style("opacity", 0)
             .remove()
+        d3.select("#tooltip")
+            .classed("slide3-tooltip", false)
+            .classed("slide5-tooltip", false)
         break
     case 5:
         // Fade out sixth slide
-        d3.select("#slide6-group")
-            .style("opacity", 0)
-        d3.selectAll(".x-custom-label")
+        d3.selectAll("#slide6-group, .x-custom-label, .y-axis")
             .style("opacity", 0)
             .on("end", () => {
                 d3.selectAll(".x-custom-label")
@@ -1956,16 +2147,10 @@ function to_fifth_slide(current_slide) {
 
     gX
         .style("opacity", 0)
-    gY
-        .style("opacity", 0)
 
     xLabel
         .style("opacity", 0)
-    yLabel
-        .style("opacity", 0)
 
-    d3.select("#topic-label")
-        .remove()
     d3.select(".slide5-dropdown")
         .remove()
 
@@ -1973,7 +2158,13 @@ function to_fifth_slide(current_slide) {
     if (lastTransitioned < 4) {
         lastTransitioned = 4
         fifth_slide(false)
+    } else if (lastTransitioned == 5) {
+        // Wait a bit for axes to fade out first
+        d3.transition()
+            .duration(600)
+            .on("end", () => { fifth_slide(true) })
     } else {
+        // Wait a bit for axes to fade out first
         fifth_slide(true)
     }
     d3.select("#slide4")
@@ -2016,11 +2207,32 @@ function fifth_slide(no_transition = false) {
         .style("display", null)
         .style("pointer-events", "all")
 
-    d3.select(".switch")
-        .style("opacity", 1)
+    // d3.select(".switch")
+    //     .style("opacity", 1)
 
-    // Add a dropdown to select different topics
+
     if (lastTransitioned > 4) {
+        // Calculate labels for dropdown based on how polarised the topic is
+        let hist = d3.histogram()
+            .domain([-3, 3])
+            .thresholds([-2.5, -1.2, -0.5, 0.5, 1.2, 2.5])
+
+        // dictionary to store the labels
+        let dropdown_labels = {}
+
+        // Loop through each topic, calculating the histogram bin that it belongs to.
+        // All the male topics get ♂ symbols and all the female topics get ♀ symbols.
+        // We assign 3 symbols to the most polarised topics and 0 to the least polarised
+        Object.entries(topic_medians_data)
+            .map(d => [d[0],
+                ["♂♂♂", "♂♂ ", "♂  ", "⚤  ", "♀  ", "♀♀ ", "♀♀♀"][hist([(d[1]["female"] > d[1]["male"]) ? (d[1]["female"] / d[1]["male"] - 1) : (-d[1]["male"] / d[1]["female"] + 1)])
+                    .map(i => i.length)
+                    .indexOf(1)
+                ] + " " + d[0]
+            ])
+            .forEach(d => { dropdown_labels[d[0]] = d[1] })
+
+        // Add a dropdown to select different topics
         d3.select("body")
             .append("span")
             .attr("class", "slide5-dropdown")
@@ -2029,19 +2241,165 @@ function fifth_slide(no_transition = false) {
             .attr("class", "slide5-dropdown__select")
             .on("change", update_fifth_slide)
             .selectAll(".topic")
-            .data(baked_positions_data.map(topic => topic.key))
+            .data(baked_positions_data.map(topic => topic.key)
+                .reverse())
             .enter()
             .append("option")
             .attr("selected", d => d == selected_topic ? "selected" : null)
             .attr("value", d => d)
-            .text(d => d.toUpperCase())
+            .text(d => dropdown_labels[d].toUpperCase())
     }
 
+    // Add search box for MPs
+    d3.selectAll(".slide5-search")
+        .remove()
+    d3.select("body")
+        .append("span")
+        .attr("class", "slide5-search")
+        .append("input")
+        .attr("id", "mp-search")
+        .attr("type", "text")
+        .attr("placeholder", "🔎 Search for your MP by name or constituency!")
+
+
+    let inp = document.getElementById("mp-search")
+    // Variable that holds the currently focused mp
+    let currentFocus
+
+    function doSearch() {
+        // This function is called every time the search input changes
+        let val = inp.value.toLowerCase()
+        let results = temp_nodes.slice(2)
+            .filter(d => d.search_string.includes(val))
+            .sort((a, b) => a.search_string.search(val) - b.search_string.search(val)) // MPs with strings matching first names go first
+        closeAllLists()
+        if (results.length == 1) {
+            slide5_show_mp_tooltip(results[0])
+        } else {
+            // Hide tooltip
+            d3.select(tooltip)
+                .style("opacity", 0)
+
+            // Get rid of annotation line too
+            d3.selectAll(".annotation-group").remove()
+
+        }
+        if (!val) { return false }
+        currentFocus = -1
+        /*create a DIV element that will contain the items (values):*/
+        let a = document.createElement("DIV")
+        a.setAttribute("id", inp.id + "autocomplete-list")
+        a.setAttribute("class", "autocomplete-items")
+        /*append the DIV element as a child of the autocomplete container:*/
+        inp.parentNode.appendChild(a)
+        /*for each item in the array...*/
+        for (let i = 0; i < results.length; i++) {
+            /*check if the item starts with the same letters as the text field value:*/
+
+            /*create a DIV element for each matching element:*/
+            let b = document.createElement("DIV")
+            // MP appears as "Jeremy Corbyn (L-Islington North)"
+            let mp_string = `${results[i].full_name} (${results[i].party}-${results[i].constituency})`
+            /*make the matching letters bold:*/
+            let match_position = mp_string.toLowerCase()
+                .search(val)
+            if (match_position != -1) {
+                b.innerHTML = mp_string.slice(0, match_position) + "<b>" + mp_string.slice(match_position, match_position + val.length) + "</b>" + mp_string.slice(match_position + val.length)
+            } else {
+                b.innerHTML = mp_string
+            }
+            /*insert a input field that will hold the current array item's value:*/
+            b.innerHTML += "<input type='hidden' value='" + results[i].id + "'>"
+            /*execute a function when someone clicks on the item value (DIV element):*/
+            b.addEventListener("click", function () {
+                /*insert the value for the autocomplete text field:*/
+                inp.value = temp_nodes.slice(2)
+                    .filter(d => d.id == this.getElementsByTagName("input")[0].value)[0].full_name
+                slide5_show_mp_tooltip(temp_nodes.slice(2)
+                    .filter(d => d.id == this.getElementsByTagName("input")[0].value)[0])
+                /*close the list of autocompleted values,
+                (or any other open lists of autocompleted values:*/
+                closeAllLists()
+            })
+            a.appendChild(b)
+        }
+    }
+
+    /*execute a function presses a key on the keyboard:*/
+    inp.addEventListener("keydown", function (e) {
+        let x = document.getElementById(this.id + "autocomplete-list")
+        if (x) x = x.getElementsByTagName("div")
+        if (x == null) return
+        if (e.keyCode == 40) {
+            /*If the arrow DOWN key is pressed,
+            increase the currentFocus variable:*/
+            currentFocus++
+
+            // Show the MP that it corresponds to
+            if(!isMobile) {
+                slide5_show_mp_tooltip(temp_nodes.slice(2)
+                    .filter(d => d.id == x[currentFocus].getElementsByTagName("input")[0].value)[0])
+            }
+            /*and and make the current item more visible:*/
+            addActive(x)
+        } else if (e.keyCode == 38) { //up
+            /*If the arrow UP key is pressed,
+            decrease the currentFocus variable:*/
+            currentFocus--
+            // Show the MP that it corresponds to
+            if(!isMobile) {
+                slide5_show_mp_tooltip(temp_nodes.slice(2)
+                    .filter(d => d.id == x[currentFocus].getElementsByTagName("input")[0].value)[0])
+            }
+            /*and and make the current item more visible:*/
+            addActive(x)
+        } else if (e.keyCode == 13) {
+            /*If the ENTER key is pressed, prevent the form from being submitted,*/
+            e.preventDefault()
+            if (currentFocus > -1) {
+                /*and simulate a click on the "active" item:*/
+                if (x) x[currentFocus].click()
+            }
+        }
+    })
+
+    function addActive(x) {
+        /*a function to classify an item as "active":*/
+        if (!x) return false
+        /*start by removing the "active" class on all items:*/
+        removeActive(x)
+        if (currentFocus >= x.length) currentFocus = 0
+        if (currentFocus < 0) currentFocus = (x.length - 1)
+        /*add class "autocomplete-active":*/
+        x[currentFocus].classList.add("autocomplete-active")
+    }
+
+    function removeActive(x) {
+        /*a function to remove the "active" class from all autocomplete items:*/
+        for (var i = 0; i < x.length; i++) {
+            x[i].classList.remove("autocomplete-active")
+        }
+    }
+
+    function closeAllLists(elmnt) {
+        /*close all autocomplete lists in the document,
+        except the one passed as an argument:*/
+        var x = document.getElementsByClassName("autocomplete-items")
+        for (var i = 0; i < x.length; i++) {
+            if (elmnt != x[i] && elmnt != inp) {
+                x[i].parentNode.removeChild(x[i])
+            }
+        }
+    }
+
+    // Bind search function to input event
+    document.getElementById("mp-search")
+        .addEventListener("input", doSearch)
 
     // Scales for this data
     slide5_xScale = d3.scaleLinear()
-        .domain([-350, 150])
-        .range([0, width])
+        .domain([-450, 150])
+        .range([margin.left, width + margin.left])
 
     slide5_yScale = d3.scaleLinear()
         .domain([-0.005, 0.3])
@@ -2049,10 +2407,27 @@ function fifth_slide(no_transition = false) {
 
     y = slide5_yScale
 
+    // Move y axis to the right and hide main line
+    yAxis = d3.axisRight(y)
+        .ticks(10)
+        .tickFormat(d => ((d % 0.1 == 0) ? ((d * 100)
+            .toFixed(0) + "%") : ""))
+    gY.call(yAxis)
+        .attr("transform", `translate(${width}, 0)`)
+        .attr("text-anchor", "start")
+        .style("opacity", 1)
+
+    d3.select(".y-axis path")
+        .style("opacity", 0)
+
+    yLabel
+        .text("% of time spent on topic")
+        .style("opacity", 1)
+
     d3.select("#slide5-group")
         .remove()
 
-    // Call function initially
+    // Call draw function initially
     if (typeof (selected_topic) != "undefined") {
         update_fifth_slide(no_transition, selected_topic)
     } else {
@@ -2085,23 +2460,26 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     d3.select("#tooltip")
         .style("opacity", 0)
 
+    // Remove annotations
+    d3.selectAll(".annotation-group").remove()
+
     // Zoom out
-    if (document.getElementById("zoom-checkbox")
-        .checked != false) {
-        document.getElementById("zoom-checkbox")
-            .click()
+    if (document.getElementById("zoom-checkbox") != null) {
+        if (document.getElementById("zoom-checkbox")
+            .checked != false) {
+            document.getElementById("zoom-checkbox")
+                .click()
+        }
     }
 
     if (typeof (default_selected_topic) != "undefined" && typeof (default_selected_topic) != "number" && from_scroll) {
         selected_topic = default_selected_topic
 
-        // Append a new label
-        wrapper.select("#topic-label")
-            .remove()
+        // Show title
+        chartTitle.style("opacity", 1)
     } else {
-        // Remove label because we have dropdown instead
-        wrapper.select("#topic-label")
-            .remove()
+        // Remove title because we have dropdown instead
+        chartTitle.style("opacity", 0)
         // Get value of topic dropdown
         try {
             selected_topic = d3.select("#topic-dropdown")
@@ -2122,7 +2500,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     nodes_female = baked_data.filter(d => d.gender != "Male")
 
     // Make alternate data store for medians
-    var temp_nodes = []
+    temp_nodes = []
 
     temp_nodes.push({
         "x": slide5_xScale(0),
@@ -2173,7 +2551,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     // UPDATE
     circle_male
         .transition()
-        .duration(2000)
+        .duration(1500)
         .attr("opacity", 0.7)
         .attr("cx", d => slide5_xScale(d.x) - 10)
         .attr("cy", d => slide5_yScale(d.y))
@@ -2202,7 +2580,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     // UPDATE
     circle_female
         .transition()
-        .duration(2000)
+        .duration(1500)
         .attr("opacity", 0.7)
         .attr("cx", d => slide5_xScale(d.x) + 10)
         .attr("cy", d => slide5_yScale(d.y))
@@ -2232,7 +2610,9 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     // Update
     median_connector_line
         .transition()
-        .duration(1000)
+        .duration(1500)
+        .attr("x1", slide5_xScale(0))
+        .attr("x2", slide5_xScale(0))
         .attr("y1", d => slide5_yScale(drawMedian ? d["female"] : 0.5))
         .attr("y2", d => slide5_yScale(drawMedian ? d["male"] : 0.5))
         .attr("opacity", drawMedian ? 1 : 0)
@@ -2261,7 +2641,8 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     // Update
     male_median_circle
         .transition()
-        .duration(1000)
+        .duration(1500)
+        .attr("cx", slide5_xScale(0))
         .attr("cy", d => slide5_yScale(drawMedian ? d : 0))
         .attr("opacity", drawMedian ? 1 : 0)
 
@@ -2421,6 +2802,64 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         .ticks(20))
     draw_custom_labels()
 
+    // ----------------------------------------------------------------------------
+    // Annotate medians with labels
+    // ----------------------------------------------------------------------------
+
+    // Remove existing annotations
+    mouseover_svg.selectAll(".female-label, .male-label").remove()
+
+    if (drawMedian) {
+    // Label female median dot
+        var make_female_label = d3.annotation()
+            .type(d3.annotationCallout)
+            .annotations([{
+                note: {
+                    title: "Median female: " + (topic_medians_data[selected_topic]["female"]*100).toFixed(1) + "%"
+                },
+                connector: {
+                    end: "dot"
+                },
+                //can use x, y directly instead of data
+                x: slide5_xScale(0),
+                y: slide5_yScale(topic_medians_data[selected_topic]["female"]),
+                dx: slide5_xScale(-100) - slide5_xScale(0),
+                dy: slide5_yScale(topic_medians_data[selected_topic]["female"] > topic_medians_data[selected_topic]["male"] ? 0.15 : 0.05) - slide5_yScale(topic_medians_data[selected_topic]["female"])
+            }])
+
+        d3.timeout(() => {
+            mouseover_svg
+                .select(".timeline-wrapper")
+                .append("g")
+                .attr("class", "female-label")
+                .call(make_female_label)
+        }, 1500)
+        // Label female median dot
+        var make_male_label = d3.annotation()
+            .type(d3.annotationCallout)
+            .annotations([{
+                note: {
+                    title: "Median male: " + (topic_medians_data[selected_topic]["male"]*100).toFixed(1) + "%"
+                },
+                connector: {
+                    end: "dot"
+                },
+                //can use x, y directly instead of data
+                x: slide5_xScale(0),
+                y: slide5_yScale(topic_medians_data[selected_topic]["male"]),
+                dx: slide5_xScale(-100) - slide5_xScale(0),
+                dy: slide5_yScale(topic_medians_data[selected_topic]["male"] > topic_medians_data[selected_topic]["female"] ? 0.15 : 0.05) - slide5_yScale(topic_medians_data[selected_topic]["male"])
+            }])
+
+        d3.timeout(() => {
+            mouseover_svg
+                .select(".timeline-wrapper")
+                .append("g")
+                .attr("class", "male-label")
+                .call(make_male_label)
+        }, 1500)
+    }
+
     // mouseover function for getting MP info
     function mpMouseover() {
         // Get mouse positions from the main canvas.
@@ -2437,46 +2876,13 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         if (typeof (nodeData) !== "undefined") {
             // If we're dealing with mp nodes
             if (typeof (nodeData.id) !== "undefined") {
-                // For each point group, set tooltip to display on mouseover
-                d3.select("#tooltip")
-                    .style("opacity", 1)
-                    .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2,
-                        width - tooltip.offsetWidth - margin.right),
-                    0 + margin.left)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20,
-                        height + tooltip.offsetHeight - 20), margin.top)}px)`)
-                    .style("pointer-events", "none")
-
-                var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1
-                // Show relevant tooltip info
-                tooltip.innerHTML = `
-                            <div class="slide5-tooltip">
-                    <h1 style="background-color: ${colorParty(nodeData.party)};">${nodeData.full_name}</h1>
-                    <div class="body">
-                    <div class="mp-image-parent">
-                    ${typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" +
-                    "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />"}
-                    </div>
-                    <div class="body-facts">
-                    <p><em>${(slide5_yScale.invert(nodeData.y) * 100).toFixed(2)}%</em> of ${nodeData.full_name}'s time spent on <em>${selected_topic}</em></p>
-                    </div>
-                    </div>
-                    <div class="mp-party" style="opacity: ${partyLogo ? 0: 1}">${nodeData.party}</div>
-                    ${partyLogo ? `<img class="mp-party-logo" alt="${nodeData.party} logo" style="opacity: ${partyLogo ? 1: 0}" src="./party_logos/${nodeData.party}.svg"/>` : ""}
-</div>`
-                // Also select the mouseover circle and move it to the right location
-                mouseover_svg
-                    .select("circle")
-                    .datum(nodeData)
-                    .attr("cx", (d) => d.x)
-                    .attr("cy", (d) => d.y)
-                    .attr("r", circleRadius * 2.5)
-                    .style("opacity", 1)
-                    .style("stroke-width", circleRadius)
+                slide5_show_mp_tooltip(nodeData, mousePos)
             } else {
                 median_mouseover(nodeData, mousePos)
             }
         }
         d3.event.preventDefault()
+
     }
 
     canvas
@@ -2485,11 +2891,135 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         .on("touchend", mpMouseover)
 
 
+    window.slide5_show_mp_tooltip = function (nodeData, mousePos) {
+        // Interrupt previous transition
+        d3.select("#tooltip").interrupt()
+        // Hide tooltip on scroll but wait for window to settle first
+        d3.timeout(() => {
+            window.addEventListener("scroll", () => {
+                d3.select("#tooltip")
+                    .style("opacity", 0)
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove()
+
+            }, { once: true })
+        }, 1000)
+        // Hide tooltip after 5 secs
+        d3.select("#tooltip").transition().delay(5000)
+            .style("opacity", 0)
+            .on("end", () => {
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove()
+            })
+        if (typeof (mousePos) === "undefined") {
+            mousePos = [nodeData.x, nodeData.y] //[width * 3 / 4, height * 3 / 4]
+            // if (isMobile) {
+            //     mousePos = [width / 2, 0]
+            // }
+        }
+
+        // Display tooltip either near mouse cursor or near MP
+        d3.select("#tooltip")
+            .style("opacity", 1)
+            .classed("slide5-tooltip", true)
+            .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+                width - tooltip.offsetWidth - margin.right),
+            0 + margin.left)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20,
+                height + tooltip.offsetHeight - 20), margin.top)}px)`)
+            .style("pointer-events", "none")
+
+        var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1
+        // Show relevant tooltip info
+        tooltip.innerHTML = `
+                            <div class="slide5-tooltip">
+                    <h1 style="background-color: ${colorParty(nodeData.party)};">${nodeData.full_name}</h1>
+                    <div class="body">
+                    <div class="mp-image-parent">
+                    ${typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" +
+                    "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />"}
+                    </div>
+                    <div class="body-facts">
+                    <div class="mp-constituency">${nodeData.constituency}</div>
+                    <p>${(slide5_yScale.invert(nodeData.y) * 100).toFixed(1)}%</em> of ${nodeData.gender == "Female" ? "her" : "his"} time spent on <em>${selected_topic}</em></p>
+                    </div>
+                    </div>
+                    <div class="mp-party" style="opacity: ${partyLogo ? 0: 1}">${nodeData.party}</div>
+                    ${partyLogo ? `<img class="mp-party-logo" alt="${nodeData.party} logo" style="opacity: ${partyLogo ? 1: 0}" src="./party_logos/${nodeData.party}.svg"/>` : ""}
+</div>`
+        // Also select the mouseover circle and move it to the right location
+        mouseover_svg
+            .select("circle")
+            .datum(nodeData)
+            .attr("cx", (d) => d.x)
+            .attr("cy", (d) => d.y)
+            .attr("r", circleRadius * 2.5)
+            .style("opacity", 1)
+            .style("stroke-width", circleRadius)
+
+        d3.timeout(() => {
+        // Annotate circle
+            var tooltip_pos = tooltip.getBoundingClientRect()
+            // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+            //     width - tooltip.offsetWidth - margin.right),
+            // 0 + margin.left), width: tooltip.offsetWidth, bottom: Math.max(Math.min(mousePos[1] - 20,
+            //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
+            var circle_pos = mouseover_svg.select("circle").node().getBoundingClientRect()
+
+            d3.selectAll(".annotation-group").remove()
+
+            var makeAnnotations = d3.annotation()
+                .type(d3.annotationLabel)
+                .annotations([{
+                    note: {
+                        title: "...."
+                    },
+                    connector: {
+                        end: "dot"
+                    },
+                    //can use x, y directly instead of data
+                    x: circle_pos.x + circle_pos.width/2,
+                    y: circle_pos.y + circle_pos.width/2,
+                    dx: tooltip_pos.x + tooltip_pos.width/2 - circle_pos.x,
+                    dy: tooltip_pos.bottom - circle_pos.y - 3
+                }])
+
+            mouseover_svg
+                .append("g")
+                .attr("class", "annotation-group")
+                .call(makeAnnotations)
+
+            // Hide label because we are using tooltip instead
+            mouseover_svg.selectAll(".annotation-group text").style("opacity", 0)
+        }, 300)
+
+
+    }
 
     // Mouseover for medians
     function median_mouseover(nodeData, mousePos) {
+        // Interrupt previous transition
+        d3.select("#tooltip").interrupt()
+        // Hide tooltip on scroll but wait for window to settle first
+        d3.timeout(() => {
+            window.addEventListener("scroll", () => {
+                d3.select("#tooltip")
+                    .style("opacity", 0)
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove()
+
+            }, { once: true })
+        }, 1000)
+
+        // Hide tooltip after 5 secs
+        d3.select("#tooltip").transition().delay(5000)
+            .style("opacity", 0)
+            .on("end", () => {
+                // Get rid of annotation line too
+                d3.selectAll(".annotation-group").remove()
+            })
         d3.select("#tooltip")
             .style("opacity", 1)
+            .classed("slide5-tooltip", true)
             .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2,
                 width - tooltip.offsetWidth / 2 - margin.right),
             0 + margin.left)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20,
@@ -2510,6 +3040,42 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             .attr("r", circleRadius * 2.5)
             .style("opacity", 1)
             .style("stroke-width", circleRadius)
+
+        d3.timeout(() => {
+        // Annotate circle
+            var tooltip_pos = tooltip.getBoundingClientRect()
+            // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
+            //     width - tooltip.offsetWidth - margin.right),
+            // 0 + margin.left), width: tooltip.offsetWidth, bottom: Math.max(Math.min(mousePos[1] - 20,
+            //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
+            var circle_pos = mouseover_svg.select("circle").node().getBoundingClientRect()
+
+            d3.selectAll(".annotation-group").remove()
+
+            var makeAnnotations = d3.annotation()
+                .type(d3.annotationLabel)
+                .annotations([{
+                    note: {
+                        title: "...."
+                    },
+                    connector: {
+                        end: "dot"
+                    },
+                    //can use x, y directly instead of data
+                    x: circle_pos.x + circle_pos.width/2,
+                    y: circle_pos.y + circle_pos.width/2,
+                    dx: tooltip_pos.x + tooltip_pos.width/2 - circle_pos.x,
+                    dy: tooltip_pos.bottom - circle_pos.y - 3
+                }])
+
+            mouseover_svg
+                .append("g")
+                .attr("class", "annotation-group")
+                .call(makeAnnotations)
+
+            // Hide label because we are using tooltip instead
+            mouseover_svg.selectAll(".annotation-group text").style("opacity", 0)
+        }, 300)
     }
 
 }
@@ -2546,6 +3112,10 @@ function to_sixth_slide(current_slide) {
         t0.select("#slide3-group")
             .style("opacity", 0)
             .on("end", function () { this.remove() })
+
+        d3.select("#tooltip")
+            .classed("slide3-tooltip", false)
+            .classed("slide5-tooltip", false)
         break
 
     case 3:
@@ -2557,20 +3127,34 @@ function to_sixth_slide(current_slide) {
         break
 
     case 4:
-        d3.selectAll("#topic-label, .slide5-dropdown, .x-custom-axis")
+        chartTitle.style("opacity", 1)
+        d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis")
             .style("opacity", 0)
             .transition()
             .delay(1000)
             .on("end", function () { this.remove() })
 
+        d3.select(".y-axis")
+            .style("opacity", 0)
+
+        yLabel.style("opacity", 0)
+
         d3.select(".switch")
             .style("opacity", 0)
-        if (document.getElementById("zoom-checkbox")
-            .checked != false) {
-            document.getElementById("zoom-checkbox")
-                .click()
+        if (document.getElementById("zoom-checkbox") != null) {
+            if (document.getElementById("zoom-checkbox")
+                .checked != false) {
+                document.getElementById("zoom-checkbox")
+                    .click()
+            }
         }
+        // Remove existing annotations
+        mouseover_svg.selectAll(".female-label, .male-label").remove()
+        d3.selectAll(".annotation-group").remove()
         break
+    case 6:
+        d3.select("#slide7-group").style("opacity", 0)
+        d3.selectAll(".x-axis path").style("opacity", 1)
     }
 
     // Fade tooltip
@@ -2588,23 +3172,31 @@ function to_sixth_slide(current_slide) {
 
 
     if (lastTransitioned < 5) {
+        // If first time transitioning
         // Change scales
         x = d3.scaleLinear()
             .range([0, width])
             .domain([0, 0.10])
         // Redraw axes
         xAxis = d3.axisBottom(x)
+            .ticks(6)
             .tickFormat(d => (d * 100)
-                .toFixed(1) + "%")
+                .toFixed(0) + "%")
     } else {
         // Use x scale at end of transition instead
         x = d3.scaleLinear()
             .range([0, width])
-            .domain([-0.04, 0.04])
+            .domain([-3, 3])
         // Redraw axes
         xAxis = d3.axisBottom(x)
+            .ticks(6)
             .tickFormat(d => (d * 100)
                 .toFixed(0) + "%")
+        // Hide canvas
+        canvas
+            .style("opacity", 0)
+            .style("display", null)
+            .style("pointer-events", "none")
     }
     gX.transition()
         .call(xAxis)
@@ -2612,7 +3204,11 @@ function to_sixth_slide(current_slide) {
     y = d3.scalePoint()
         .range([height, 0])
         .padding(1)
+    yAxis = d3.axisRight(y)
+    gY.style("opacity", 0)
+        .call(yAxis)
 
+    d3.selectAll(".y-axis > .tick text").style("transition", null)
 
     // Increment lastTransitioned counter if it is less than 0
     if (lastTransitioned < 5) {
@@ -2666,14 +3262,42 @@ function sixth_slide(no_transition = false) {
         .style("opacity", 0)
         .remove()
 
+    // remove mp search
+    d3.select(".slide5-search")
+        .style("opacity", 0)
+        .remove()
+
     // Set the topics that will appear on the y axis
     let sorted_topics = Object.entries(topic_medians_data)
-        .sort((a, b) => (a[1]["female"] - a[1]["male"]) - (b[1]["female"] - b[1]["male"]))
+        .sort((a, b) => (a[1]["female"] / a[1]["male"] - b[1]["female"] / b[1]["male"]))
 
     y.domain(sorted_topics.map(d => d[0]))
-    yAxis = d3.axisLeft(y)
+    yAxis = d3.axisRight(y)
     gY.transition()
+        .attr("transform", null)
+        .attr("text-anchor", "start")
         .call(yAxis)
+
+        // Move the axis labels while still hidden
+        // Label position is on left or right according to location of point
+    let label_pos = sorted_topics
+        .map(d => {
+            // If more space on the right
+            if((x.range()[1] - x(Math.max(d[1]["male"], d[1]["female"]))) > (x(Math.min(d[1]["male"], d[1]["female"])) - x.range()[0])) {
+                return "start"
+            }
+            return "end"
+        })
+
+    d3.selectAll(".y-axis > .tick text")
+        .transition()
+        .delay(500)
+        .duration(1)
+        .attr("x", (d, i) => label_pos[i] == "start" ? x(Math.max(sorted_topics[i][1]["male"], sorted_topics[i][1]["female"])) + 5 : x(Math.min(sorted_topics[i][1]["male"], sorted_topics[i][1]["female"])) - 5)
+        .style("text-anchor", (d, i) => {
+            return label_pos[i]
+        })
+
 
     // Hide axis line and ticks
     d3.select(".y-axis > path")
@@ -2685,11 +3309,8 @@ function sixth_slide(no_transition = false) {
     var t0 = d3.transition()
         .duration(1000)
 
-    // Make y-axis topic labels all uppercase
-    d3.selectAll(".y-axis > .tick text")
-        .style("text-transform", "uppercase")
 
-    // Only do the ollowing steps if we'e coming from slide 5
+    // Only do the following steps if we'e coming from slide 5 for the first time
     if (lastTransitioned == 4) {
         // Only show selected topic's label for now
         d3.selectAll(".y-axis > .tick text")
@@ -2780,7 +3401,7 @@ function sixth_slide(no_transition = false) {
             .text("Gender bias of topics")
 
         xLabel
-            .text("Average % of time spent on topic")
+            .text("Relative gender bias")
             .style("opacity", 1)
 
         gX.style("opacity", 1)
@@ -2841,6 +3462,12 @@ function sixth_slide(no_transition = false) {
             .attr("opacity", d => d[0] == selected_topic ? 0 : 1)
             .attr("cx", d => x(d[1]["female"]))
 
+        // Make all axis tick labels visible
+        d3.selectAll(".y-axis > .tick text")
+            .transition(t1)
+            .delay((d, i) => 1800 + i * 50)
+            .style("opacity", 1)
+
         var t2 = t1.transition()
             .delay(2500)
             .on("end", () => {
@@ -2850,10 +3477,6 @@ function sixth_slide(no_transition = false) {
                     .attr("opacity", 1)
                 slide6Group.selectAll(".tmp")
                     .remove()
-                // Make all axis tick labels visible
-                d3.selectAll(".y-axis > .tick text")
-                    .style("opacity", 1)
-                    .style("transition", "opacity 0.2s ease-in-out")
             })
 
         // Hover rects to catch mouseovers
@@ -2884,6 +3507,7 @@ function sixth_slide(no_transition = false) {
                 new_slide = 4
                 d3.select(".is-active")
                     .style("opacity", 0)
+                    .style("pointer-events", "none")
                 update_state()
 
             })
@@ -2892,8 +3516,9 @@ function sixth_slide(no_transition = false) {
         var t3 = t2.transition()
             .delay(1000)
             .on("end", () => {
-                x.domain([-0.04, 0.04])
+                x.domain([-3, 3])
                 xAxis = d3.axisBottom(x)
+                    .ticks(6)
                     .tickFormat(d => (d * 100)
                         .toFixed(0) + "%")
                 gX.transition()
@@ -2905,29 +3530,31 @@ function sixth_slide(no_transition = false) {
                         slide6Group.selectAll(".median-connector")
                             .transition(t_)
                             .delay((d, i) => i * 50)
-                            .attr("x1", d => x(d[1]["female"] - d[1]["male"]))
+                            .attr("x1", d => x((d[1]["female"] > d[1]["male"]) ? (d[1]["female"] / d[1]["male"] - 1) : (-d[1]["male"] / d[1]["female"] + 1)))
                             .attr("x2", x(0))
 
                         slide6Group.selectAll(".female-median")
                             .transition(t_)
                             .delay((d, i) => i * 50)
-                            .attr("cx", d => d[1]["female"] - d[1]["male"] > 0 ? x(d[1]["female"] - d[1]["male"]) : x(0))
+                            .attr("cx", d => d[1]["female"] > d[1]["male"] ? x(d[1]["female"] / d[1]["male"] - 1) : x(0))
 
                         slide6Group.selectAll(".male-median")
                             .transition(t_)
                             .delay((d, i) => i * 50)
-                            .attr("cx", d => d[1]["female"] - d[1]["male"] < 0 ? x(d[1]["female"] - d[1]["male"]) : x(0))
-                            .on("end", () => d3.selectAll(".y-axis > .tick text")
-                                .style("opacity", 0))
+                            .attr("cx", d => d[1]["female"] < d[1]["male"] ? x(-d[1]["male"] / d[1]["female"] + 1) : x(0))
+
+                        d3.selectAll(".y-axis > .tick text")
+                            .style("opacity", 0)
 
                         xLabel
-                            .text("Median female - Median male")
+                            .text("Relative gender bias")
 
+                        wrapper.selectAll(".x-custom-label").remove()
                         wrapper.append("text")
                             .attr("class", "x-custom-label")
                             .attr("x", width)
-                            .attr("y", height + margin.bottom)
-                            .text("FEMALE FRIENDLY")
+                            .attr("y", height + (isMobile ? margin.bottom*2/3 : margin.bottom))
+                            .text("Discussed more by women" + (isMobile ? "→" : " ⟶"))
                             .style("text-anchor", "end")
                             .style("fill", colors["Female"])
                             .style("alignment-baseline", "hanging")
@@ -2935,8 +3562,8 @@ function sixth_slide(no_transition = false) {
                         wrapper.append("text")
                             .attr("class", "x-custom-label")
                             .attr("x", 0)
-                            .attr("y", height + margin.bottom)
-                            .text("MALE FRIENDLY")
+                            .attr("y", height + (isMobile ? margin.bottom*2/3 : margin.bottom))
+                            .text((isMobile ? "←" : "⟵ ") + "Discussed more by men")
                             .style("text-anchor", "start")
                             .style("fill", colors["Male"])
                             .style("alignment-baseline", "hanging")
@@ -2948,14 +3575,14 @@ function sixth_slide(no_transition = false) {
     } else {
         // Switch to relative change view in case this was skipped before
         slide6Group.selectAll(".median-connector")
-            .attr("x1", d => x(d[1]["female"] - d[1]["male"]))
+            .attr("x1", d => x((d[1]["female"] > d[1]["male"]) ? (d[1]["female"] / d[1]["male"] - 1) : (-d[1]["male"] / d[1]["female"] + 1)))
             .attr("x2", x(0))
 
         slide6Group.selectAll(".female-median")
-            .attr("cx", d => d[1]["female"] - d[1]["male"] > 0 ? x(d[1]["female"] - d[1]["male"]) : x(0))
+            .attr("cx", d => d[1]["female"] > d[1]["male"] ? x(d[1]["female"] / d[1]["male"] - 1) : x(0))
 
         slide6Group.selectAll(".male-median")
-            .attr("cx", d => d[1]["female"] - d[1]["male"] < 0 ? x(d[1]["female"] - d[1]["male"]) : x(0))
+            .attr("cx", d => d[1]["female"] < d[1]["male"] ? x(-d[1]["male"] / d[1]["female"] + 1) : x(0))
 
         // Now fade in the slide
         t4 = d3.transition()
@@ -2967,7 +3594,7 @@ function sixth_slide(no_transition = false) {
             .attr("class", "x-custom-label")
             .attr("x", width)
             .attr("y", height + margin.bottom)
-            .text("FEMALE FRIENDLY")
+            .text("Discussed more by women ⟶")
             .style("text-anchor", "end")
             .style("fill", colors["Female"])
             .style("alignment-baseline", "hanging")
@@ -2976,33 +3603,266 @@ function sixth_slide(no_transition = false) {
             .attr("class", "x-custom-label")
             .attr("x", 0)
             .attr("y", height + margin.bottom)
-            .text("MALE FRIENDLY")
+            .text("⟵ Discussed more by men")
             .style("text-anchor", "start")
             .style("fill", colors["Male"])
             .style("alignment-baseline", "hanging")
     }
 
 
-    let label_pos = sorted_topics
+    label_pos = sorted_topics
         .map(d => d[1]["female"] - d[1]["male"] > 0)
 
     d3.selectAll(".y-axis > .tick text")
         .filter(d => Object.keys(topic_medians_data)
             .indexOf(d) != -1)
         .transition(t4)
-        .delay(() => no_transition ? 0 : 3000)
-        .duration(no_transition ? 1 : 1000)
+        .delay(() => no_transition ? 0 : 2000)
+        .duration(no_transition ? 1 : 0)
         .style("text-anchor", (d, i) => {
             return label_pos[i] ? "end" : "start"
         })
-        .attr("x", (d, i) => label_pos[i] ? x.domain([-0.04, 0.04])(-0.001) : x.domain([-0.04, 0.04])(0.001))
+        .attr("x", (d, i) => label_pos[i] ? x.domain([-0.06, 0.06])(-0.001) : x.domain([-0.06, 0.06])(0.001))
         .transition()
-        .delay(500)
+        .delay(1000)
         .duration(500)
         .style("opacity", 1)
 
 
 }
+
+// ----------------------------------------------------------------------------
+// TRANSITION TO SEVENTH SLIDE, EITHER WITH OR WITHOUT FANCY TRANSITIONS
+// ----------------------------------------------------------------------------
+function to_seventh_slide(current_slide) {
+    "use strict"
+    var t0 = svg
+        .transition()
+        .duration(1000)
+
+    // Different actions depending on which slide we're coming from
+    switch (current_slide) {
+    case 0:
+        // If we're coming from the first slide
+        t0.select("#slide1-group")
+            .style("opacity", 0)
+            .remove()
+        break
+
+    case 1:
+        // If we're coming from the second slide
+        d3.select("#slide2-group")
+            .style("opacity", 0)
+        break
+
+    case 2:
+        // Fade all objects belonging to third slide
+        d3.select("#slide2-group")
+            .style("opacity", 0)
+
+        t0.select("#slide3-group")
+            .style("opacity", 0)
+            .on("end", function () { this.remove() })
+
+        d3.select("#tooltip")
+            .classed("slide3-tooltip", false)
+            .classed("slide5-tooltip", false)
+        break
+
+    case 3:
+        d3.select("#slide4")
+            .style("opacity", 0)
+            .transition()
+            .delay(1000)
+            .on("end", function () { this.remove() })
+        break
+
+    case 4:
+        chartTitle.style("opacity", 1)
+        d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis")
+            .remove()
+
+        d3.select(".switch")
+            .style("opacity", 0)
+        if (document.getElementById("zoom-checkbox") != null) {
+            if (document.getElementById("zoom-checkbox")
+                .checked != false) {
+                document.getElementById("zoom-checkbox")
+                    .click()
+            }
+        }
+        // Remove existing annotations
+        mouseover_svg.selectAll(".female-label, .male-label").remove()
+        // Hide mouseover circle
+        mouseover_svg
+            .select("circle")
+            .style("opacity", 0)
+        break
+    case 5:
+        // Fade out sixth slide
+        d3.selectAll("#slide6-group, .x-custom-label")
+            .style("opacity", 0)
+            .on("end", () => {
+                d3.selectAll(".x-custom-label")
+                    .remove()
+            })
+
+    }
+
+    // Fade tooltip
+    d3.select("#tooltip")
+        .transition(t0)
+        .style("opacity", 0)
+        .on("end", function () { this.innerHTML = "" })
+
+
+    // Remove Election rectangles
+    electionRects
+        .transition(t0)
+        .style("opacity", 0)
+        .remove()
+
+    canvas.style("opacity", 0)
+        .style("display", "none")
+        .style("pointer-events", "none")
+
+
+    // Change axes
+    x = d3.scaleBand().range([0, width])
+        .domain(parliamentary_candidates_data.map(d => d.year)).paddingInner(0.2)
+    xAxis = d3.axisBottom(x)
+    gX.transition(t0)
+        .call(xAxis)
+        .style("opacity", 1)
+        .on("end", () => {
+            d3.selectAll(".x-axis path").style("opacity", 0)
+            // if(isMobile) {
+            d3.selectAll(".x-axis text")
+                .attr("transform", "rotate(-45)")
+                .attr("text-anchor", "end")
+                .attr("dx", -5)
+            // }
+        })
+    y = d3.scaleLinear().domain([0, 1100]).range([height, 0])
+    yAxis = d3.axisRight(y).ticks(5).tickFormat(d => d)
+    gY.style("opacity", 0)
+
+    d3.timeout(() => {
+        gY
+            .transition(t0)
+            .call(yAxis)
+            .attr("transform", `translate(${width}, 0)`)
+            .style("opacity", 1)
+    }, 1000)
+
+    xLabel.style("opacity", 1)
+    yLabel.style("opacity", 1)
+    // Increment lastTransitioned counter if it is less than 0
+    if (lastTransitioned < 6) {
+        t0.on("end", () => {
+            seventh_slide(false)
+            lastTransitioned = 6
+        })
+    } else {
+        t0.on("end", () => seventh_slide(true))
+    }
+
+}
+
+// ----------------------------------------------------------------------------
+// ███████╗███████╗██╗   ██╗███████╗███╗   ██╗████████╗██╗  ██╗    ███████╗██╗     ██╗██████╗ ███████╗
+// ██╔════╝██╔════╝██║   ██║██╔════╝████╗  ██║╚══██╔══╝██║  ██║    ██╔════╝██║     ██║██╔══██╗██╔════╝
+// ███████╗█████╗  ██║   ██║█████╗  ██╔██╗ ██║   ██║   ███████║    ███████╗██║     ██║██║  ██║█████╗
+// ╚════██║██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║   ██║   ██╔══██║    ╚════██║██║     ██║██║  ██║██╔══╝
+// ███████║███████╗ ╚████╔╝ ███████╗██║ ╚████║   ██║   ██║  ██║    ███████║███████╗██║██████╔╝███████╗
+// ╚══════╝╚══════╝  ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝    ╚══════╝╚══════╝╚═╝╚═════╝ ╚══════╝
+// SHOW CANDIDATES RUNNING IN 2018
+// ----------------------------------------------------------------------------
+function seventh_slide(no_transition = false) {
+    // If we've already visited this slide, set no_transition to true
+    no_transition = lastTransitioned >= 6
+
+    xLabel.text("Year")
+    yLabel.text("Number of Female Parliamentary Candidates")
+    chartTitle.text("Female Parliamentary Candidates over Time")
+
+    if(no_transition) {
+        var slide7Group = d3.select("#slide7-group").style("opacity", 1)
+    } else {
+
+        d3.select("#slide7-group").selectAll("*").remove()
+
+        slide7Group = zoomedArea.append("g").attr("id", "slide7-group")
+
+
+        var bar_stack = slide7Group.append("g")
+            .selectAll("g")
+            .data(d3.stack().keys(["Labour", "Conservative", "Liberal", "Other"])(parliamentary_candidates_data))
+            .enter().append("g")
+            .attr("fill", d => colors[d.key])
+
+        bar_stack
+            .selectAll("rect")
+            .data(d => d)
+            .enter().append("rect")
+            .attr("x", d => x(d.data.year))
+            .attr("y", height)
+            .attr("height", 0)
+            .attr("width", x.bandwidth())
+            .transition()
+            .duration(500)
+            .delay((d,i) => i*100)
+            .attr("y", d => y(d[1]))
+            .attr("height", d => y(d[0]) - y(d[1]))
+
+        // Add some text labels for the values
+        if (!isMobile) {
+
+            bar_stack
+                .selectAll("text")
+                .data(d => d)
+                .enter()
+                .append("text")
+                .classed("bar-label", true)
+                .attr("x", d => x(d.data.year) + x.bandwidth()/2)
+                .attr("y", d => y(d[1]))
+                .attr("dy", 10)
+                .attr("dominant-baseline", "hanging")
+                .style("opacity", 0)
+                .text(d => d[1] - d[0])
+                .transition()
+                .duration(1)
+                .delay((d,i) => 500 + i*100)
+                .style("opacity", (d,i) => i > 12 ? 1 : 0)
+        }
+    }
+
+    // Label 2018 election
+    // var make_2018_label = d3.annotation()
+    //     .type(d3.annotationCallout)
+    //     .annotations([{
+    //         note: {
+    //             title: "Record number of women in 2018 ????",
+    //             wrap: 250
+    //         },
+    //         connector: {
+    //             end: "dot"
+    //         },
+    //         //can use x, y directly instead of data
+    //         x: x("2017") + x.bandwidth()/2,
+    //         y: y(320),
+    //         dx: x("2010") - x("2017"),
+    //         dy: y(370) - y(320),
+    //     }])
+    //
+    // d3.timeout(() => {
+    //     slide7Group
+    //         .append("g")
+    //         .attr("class", "i2018-label")
+    //         .call(make_2018_label)
+    // }, 14*100+500)
+}
+
 
 // ----------------------------------------------------------------------------
 // ██████╗  ██████╗ ██╗    ██╗███╗   ██╗██╗      ██████╗  █████╗ ██████╗     ██████╗  █████╗ ████████╗ █████╗
@@ -3024,8 +3884,6 @@ function download_data() {
                 term_start: parseDate(d.term_start),
                 term_end: parseDate(d.term_end),
                 party: d.party,
-                byelection: (d.byelection == "TRUE"),
-                notes: d.notes,
                 clean_name: d.clean_name,
                 stream: +d.stream
             }
@@ -3106,9 +3964,9 @@ function download_data() {
             }
         })
         .defer(d3.csv,
-            "baked_positions.csv" + "?" + Math.floor(Math.random() * 1000)
+            "baked_positions.csv"
         )
-        .defer(d3.csv, "topic_medians.csv" + "?" + Math.floor(Math.random() * 100),
+        .defer(d3.csv, "topic_medians.csv",
             function (d) {
                 return {
                     topic: d.topic,
@@ -3116,7 +3974,17 @@ function download_data() {
                     female: Math.pow(10, +d.female)
                 }
             })
-        .await(function (error, women_in_govt, baked_mp_positions, topic_medians) {
+        .defer(d3.csv, "number_women_parliamentary_candidates_over_time.csv",
+            d => {
+                return {
+                    year: d.Year,
+                    Labour: +d.Lab,
+                    Conservative: +d.Con,
+                    Liberal: +d.Lib,
+                    Other: +d.Other
+                }
+            })
+        .await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates) {
             // Group stats by country
             women_in_govt_data = d3.nest()
                 .key(d => d.country)
@@ -3137,13 +4005,18 @@ function download_data() {
 
                 Object.keys(row)
                     .forEach(function (colname) {
-                        if (colname != "id" & colname != "full_name" & colname != "Party" & colname != "is_female" & colname.slice(-1) != "y") {
+                        if (colname != "id" & colname != "full_name" & colname != "Constituency" &
+                         colname != "Party" & colname != "is_female" &
+                          colname.slice(-1) != "y") {
                             var topic = colname.slice(0, -2)
                             baked_positions_data.push({
                                 "id": +row["id"],
                                 "full_name": row["full_name"],
+                                "constituency": row["Constituency"],
                                 "party": row["Party"],
                                 "gender": row["is_female"] == 1 ? "Female" : "Male",
+                                "search_string": (row["full_name"] + " " + row["Constituency"] + " " + row["Party"] + "-" + row["constituency"])
+                                    .toLowerCase(),
                                 "topic": topic,
                                 "x": +row[topic + "_x"],
                                 "y": +row[topic + "_y"] / 100,
@@ -3156,6 +4029,7 @@ function download_data() {
                 .key(d => d.topic)
                 .entries(baked_positions_data)
 
+            parliamentary_candidates_data = parliamentary_candidates
         })
 
 }
@@ -3201,9 +4075,9 @@ function handleContainerExit(response) {
     $graphic.classed("is-fixed", false)
     $graphic.classed("is-bottom", response.direction === "down")
 
-    if (response.direction == "down" && lastTransitioned >= 4) {
-        // Go to sixth slide
-        new_slide = 5
+    if (response.direction == "down" && lastTransitioned >= 5) {
+        // Go to seventh slide
+        new_slide = 7
         update_state()
     }
 }
@@ -3230,6 +4104,10 @@ function mpZoom(clean_name, focus = "mid", scale_level = 3, vshift = 0, hshift =
     // Hide tooltip
     d3.select(tooltip)
         .style("opacity", 0)
+
+        // Get rid of annotation line too
+    d3.selectAll(".annotation-group").remove()
+
     // Set flag to not fade mouseover line
     IGNORE_STATE = true
     // Highlight MP
@@ -3253,10 +4131,29 @@ function handleStepEnter(response) {
     $step.classed("is-active", function (d, i) {
         return i === response.index
     })
+    if(d3.select(".is-active").node().innerText != "") {
+        d3.select(".is-active")
+            .style("opacity", 1)
+            .style("pointer-events", "all")
+    }
 
     // Hide tooltip
     d3.select("#tooltip")
         .style("opacity", 0)
+
+
+    // Remove any annotations
+    d3.selectAll(".annotation-group").remove()
+
+    window.addEventListener("scroll", () => {
+        d3.select("#tooltip")
+            .style("opacity", 0)
+        // Get rid of annotation line too
+        d3.selectAll(".annotation-group").remove()
+
+    }, { once: true })
+    // Remove existing labels
+    mouseover_svg.selectAll(".female-label, .male-label").remove()
 
     // go to next slide based on slide attribute
     new_slide = +$step.nodes()[response.index].getAttribute("data-slide")
@@ -3276,7 +4173,17 @@ function handleStepEnter(response) {
     // Run different functions depending on slide and step no.
     switch (current_slide) {
     case 0:
+        mouseover_svg.select("line").style("opacity", 0)
         switch (new_step) {
+        case -1:
+            if (response.direction == "up") {
+                // Hide election rects
+                electionRects
+                    .transition()
+                    .delay((d, i) => (electionRects.nodes().length - i) * 50)
+                    .style("opacity", 0)
+            }
+            break
         case 0:
             if (response.direction == "up") {
 
@@ -3296,6 +4203,29 @@ function handleStepEnter(response) {
             electionRects.filter((d, i) => i == 22)
                 .classed("hover", true)
                 .style("opacity", null)
+
+            var makeAnnotations = d3.annotation()
+                .type(d3.annotationCallout)
+                .annotations([{
+                    note: {
+                        title: "New Labour landslide election",
+                        wrap: 150
+                    },
+                    connector: {
+                        end: "dot"
+                    },
+                    //can use x, y directly instead of data
+                    x: x(new Date(1999, 1, 1)),
+                    y: y(100),
+                    dx: isMobile ? -50 : -100,
+                    dy: -200
+                }])
+
+            wrapper
+                .append("g")
+                .attr("class", "annotation-group")
+                .call(makeAnnotations)
+
             break
         case 0.2:
             if (response.direction == "up") {
@@ -3387,7 +4317,9 @@ function handleStepEnter(response) {
             d3.select(".switch")
                 .style("opacity", 1)
                 .on("mouseover", () => {
-                    d3.select("#tooltip").style("opacity", 0)
+                    d3.select("#tooltip")
+                        .style("opacity", 0)
+                    d3.selectAll(".annotation-group").remove()
                 })
                 .select("#zoom-checkbox")
                 .on("change", function () {
@@ -3396,6 +4328,8 @@ function handleStepEnter(response) {
                         canvas.call(zoom)
                         d3.select(".is-active")
                             .style("opacity", 0)
+                            .style("pointer-events", "none")
+                        d3.select(".switch").select("label").text("Stop zooming")
                     } else {
                         reset_zoom()
                         d3.select(".is-active")
@@ -3404,6 +4338,7 @@ function handleStepEnter(response) {
                                 return this.innerText != ""
                             })
                             .style("opacity", 1)
+                            .style("pointer-events", "all")
                     }
 
                 })
@@ -3424,27 +4359,96 @@ function handleStepEnter(response) {
                     all_mps_draw_timer.stop()
                     mpZoom("constancemarkievicz", "mid", 10, 0, width / 4)
                 }, 1000)
+                var zooming = true
             } else {
                 // First step: zoom into first mp
                 all_mps_draw_timer.stop()
                 mpZoom("constancemarkievicz", "mid", 10, 0, width / 4)
             }
+            // Annotate Jeannette
+            annotate_timer = d3.timeout(() => {
+                var line_pos = mouseover_svg.select("line").node().getBoundingClientRect()
+
+                makeAnnotations = d3.annotation()
+                    .type(d3.annotationCallout)
+                    .annotations([{
+                        note: {
+                            title: "Constance Markievicz"
+                        },
+                        //can use x, y directly instead of data
+                        x: line_pos.x + line_pos.width/2,
+                        y: line_pos.y + line_pos.height/2,
+                        dx: isMobile ? 30 : 100,
+                        dy: 100
+                    }])
+                mouseover_svg
+                    .append("g")
+                    .attr("class", "annotation-group")
+                    .call(makeAnnotations)
+            }, zooming ? 2000 : 1000)
+
             canvas.style("pointer-events", "none")
             break
 
         case 2:
             // Second step: first mp to take seat
             mpZoom("nancyastor")
+            annotate_timer.stop()
+            // Annotate Patsy
+            annotate_timer = d3.timeout(() => {
+                var line_pos = mouseover_svg.select("line").node().getBoundingClientRect()
+
+                makeAnnotations = d3.annotation()
+                    .type(d3.annotationCallout)
+                    .annotations([{
+                        note: {
+                            title: "Nancy Astor"
+                        },
+                        //can use x, y directly instead of data
+                        x: line_pos.x + line_pos.width/2,
+                        y: line_pos.y + line_pos.height/2,
+                        dx: isMobile ? 30 : 100,
+                        dy: 200
+                    }])
+                mouseover_svg
+                    .append("g")
+                    .attr("class", "annotation-group")
+                    .call(makeAnnotations)
+            }, 1000)
             canvas.style("pointer-events", "none")
             break
 
         case 4:
             // Fourth step: first prime minister
             mpZoom("margaretthatcher")
+            annotate_timer.stop()
+            annotate_timer = d3.timeout(() => {
+                var line_pos = mouseover_svg.select("line").node().getBoundingClientRect()
+
+                makeAnnotations = d3.annotation()
+                    .type(d3.annotationCallout)
+                    .annotations([{
+                        note: {
+                            title: "Margaret Thatcher"
+                        },
+                        //can use x, y directly instead of data
+                        x: line_pos.x + line_pos.width/2,
+                        y: line_pos.y + line_pos.height/2,
+                        dx: isMobile ? 30 : 100,
+                        dy: 200
+                    }])
+                mouseover_svg
+                    .append("g")
+                    .attr("class", "annotation-group")
+                    .call(makeAnnotations)
+            }, 1000)
+
+
             canvas.style("pointer-events", "none")
             break
 
         case 5:
+            annotate_timer.stop()
             canvas.style("pointer-events", "all")
             d3.select(".switch")
                 .style("opacity", 1)
@@ -3605,6 +4609,7 @@ function handleStepEnter(response) {
         break
 
     case 1:
+        // Second slide
         d3.select(".switch")
             .style("opacity", 0)
         if (document.getElementById("zoom-checkbox")
@@ -3621,9 +4626,12 @@ function handleStepEnter(response) {
                     .text("Number of MPs")
                 chartTitle
                     .transition()
-                    .text("MPs in the House of Commons")
+                    .text("Representatives in Congress")
+
+                slide2Group.select(".party-label").transition().text("")
                 // All MPs first
                 y.domain([0, 750])
+                yAxis = d3.axisRight(y)
                 gY.transition()
                     .call(yAxis)
 
@@ -3640,6 +4648,11 @@ function handleStepEnter(response) {
                 half_max_mps_line.y(d => y(d.total_mps / 2))
                 half_max_mps_path.transition()
                     .attr("d", half_max_mps_line)
+
+                half_max_mps_line_smooth.y(d => y(d.total_mps / 2 + 3.5))
+                text_path_50_50
+                    .transition()
+                    .attr("d", half_max_mps_line_smooth)
 
                 total_women_mps_line.y(d => y(d.total_women_mps))
                 total_women_mps_path.transition()
@@ -3663,7 +4676,11 @@ function handleStepEnter(response) {
                 .transition()
                 .text("MPs in the Labour Party")
 
+            slide2Group.select(".party-label").transition().text("Labour")
+
             y.domain([0, 100])
+            yAxis = d3.axisRight(y)
+                .tickFormat(d => d)
             gY.transition()
                 .call(yAxis)
 
@@ -3674,6 +4691,7 @@ function handleStepEnter(response) {
             max_mps_path_area.transition()
                 .attr("d", max_mps_area)
                 .style("fill", colors["Labour"])
+                .style("opacity", 1)
             mask.transition()
                 .attr("d", max_mps_area)
 
@@ -3681,7 +4699,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(52))
+            half_max_mps_line_smooth.y(y(51))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -3706,7 +4724,11 @@ function handleStepEnter(response) {
                 .transition()
                 .text("MPs in the Conservative Party")
 
+            slide2Group.select(".party-label").transition().text("Conservative")
+
             y.domain([0, 100])
+            yAxis = d3.axisRight(y)
+                .tickFormat(d => d)
             gY.transition()
                 .call(yAxis)
 
@@ -3717,6 +4739,7 @@ function handleStepEnter(response) {
             max_mps_path_area.transition()
                 .attr("d", max_mps_area)
                 .style("fill", colors["Conservative"])
+                .style("opacity", 1)
             mask.transition()
                 .attr("d", max_mps_area)
 
@@ -3724,7 +4747,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(52))
+            half_max_mps_line_smooth.y(y(51))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -3749,7 +4772,11 @@ function handleStepEnter(response) {
                 .transition()
                 .text(isMobile ? "MPs in the Lib Dems and SNP" : "MPs in the Liberal Democrats and Scottish National Party")
 
+            slide2Group.select(".party-label").transition().text("Lib Dem/SNP")
+
             y.domain([0, 100])
+            yAxis = d3.axisRight(y)
+                .tickFormat(d => d)
             gY.transition()
                 .call(yAxis)
 
@@ -3760,6 +4787,7 @@ function handleStepEnter(response) {
             max_mps_path_area.transition()
                 .attr("d", max_mps_area)
                 .style("fill", colors["LD"])
+                .style("opacity", 1)
             mask.transition()
                 .attr("d", max_mps_area)
 
@@ -3767,7 +4795,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(52))
+            half_max_mps_line_smooth.y(y(51))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -3792,6 +4820,8 @@ function handleStepEnter(response) {
                 .transition()
                 .text("MPs in the House of Commons")
 
+            slide2Group.select(".party-label").transition().text("")
+
             y.domain([0, 100])
             gY.transition()
                 .call(yAxis)
@@ -3810,7 +4840,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(52))
+            half_max_mps_line_smooth.y(y(51))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -3830,14 +4860,17 @@ function handleStepEnter(response) {
         break
 
     case 3:
+        // Fourth slide (no data, just text)
         d3.select("#slide4")
             .style("display", "none")
         d3.select(".switch")
             .style("opacity", 0)
-        if (document.getElementById("zoom-checkbox")
-            .checked != false) {
-            document.getElementById("zoom-checkbox")
-                .click()
+        if (document.getElementById("zoom-checkbox") != null) {
+            if (document.getElementById("zoom-checkbox")
+                .checked != false) {
+                document.getElementById("zoom-checkbox")
+                    .click()
+            }
         }
         chartTitle
             .transition()
@@ -3845,6 +4878,7 @@ function handleStepEnter(response) {
         break
 
     case 4:
+        // Fifth slide
         d3.select("#slide4")
             .style("display", "none")
         switch (new_step) {
@@ -3986,6 +5020,14 @@ function draw_graph() {
     //     })
 
 
+
+    // These are the margins for the SVG
+    margin = {
+        top: 50,
+        left: 25,
+        bottom: 30,
+        right: (timeline.clientWidth < 500 ? 50 : 70)
+    }
     var new_width = timeline.clientWidth - margin.left - margin.right,
         new_height = (timeline.clientHeight - margin.top - margin.bottom)
 
