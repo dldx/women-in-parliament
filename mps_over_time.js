@@ -2410,7 +2410,7 @@ function fifth_slide(no_transition = false) {
     // Move y axis to the right and hide main line
     yAxis = d3.axisRight(y)
         .ticks(10)
-        .tickFormat(d => ((d % 0.1 == 0) ? ((d * 100)
+        .tickFormat(d => ((d*10 % 1 == 0) ? ((d * 100)
             .toFixed(0) + "%") : ""))
     gY.call(yAxis)
         .attr("transform", `translate(${width}, 0)`)
@@ -3814,27 +3814,38 @@ function seventh_slide(no_transition = false) {
             .delay((d,i) => i*100)
             .attr("y", d => y(d[1]))
             .attr("height", d => y(d[0]) - y(d[1]))
+            .style("stroke-dasharray", (d) => d.data.year == "Future" ? "5,5" : "unset") // If it is the last element, display it differently
+            .style("stroke", (d) => d.data.year == "Future" ? colors["Hover"] : "unset")
+            .style("fill", (d) => d.data.year == "Future" ? "none" : "unset")
 
         // Add some text labels for the values
-        if (!isMobile) {
-
-            bar_stack
-                .selectAll("text")
-                .data(d => d)
-                .enter()
-                .append("text")
-                .classed("bar-label", true)
-                .attr("x", d => x(d.data.year) + x.bandwidth()/2)
-                .attr("y", d => y(d[1]))
-                .attr("dy", 10)
-                .attr("dominant-baseline", "hanging")
-                .style("opacity", 0)
-                .text(d => d[1] - d[0])
-                .transition()
-                .duration(1)
-                .delay((d,i) => 500 + i*100)
-                .style("opacity", (d,i) => i > 12 ? 1 : 0)
-        }
+        bar_stack
+            .selectAll("text")
+            .data(d => d)
+            .enter()
+            .append("text")
+            .classed("bar-label", true)
+            .attr("x", d => x(d.data.year) + x.bandwidth()/2)
+            .attr("y", d => y(d[1]))
+            .attr("dy", 10)
+            .attr("dominant-baseline", "hanging")
+            .style("opacity", 0)
+            .text(d => {
+                if ((d[1] - d[0]) < 1) {
+                    return ""
+                } else {
+                    // If it is the last element
+                    if (d.data.year == "Future") {
+                        return "?"
+                    } else {
+                        return d[1] - d[0]
+                    }
+                }
+            })
+            .transition()
+            .duration(1)
+            .delay((d,i) => 500 + i*100)
+            .style("opacity", (d,i) => (i > 12) && !isMobile ? 1 : 0)
     }
 
     // Label 2018 election
@@ -3978,10 +3989,10 @@ function download_data() {
             d => {
                 return {
                     year: d.Year,
-                    Labour: +d.Lab,
-                    Conservative: +d.Con,
-                    Liberal: +d.Lib,
-                    Other: +d.Other
+                    Labour: +d.Lab_women,
+                    Conservative: +d.Con_women,
+                    Liberal: +d.Lib_women,
+                    Other: +d.Other_women
                 }
             })
         .await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates) {
@@ -4890,16 +4901,16 @@ function handleStepEnter(response) {
                 .text("Time spent on the economy")
             break
         case 1:
-            update_fifth_slide(false, "welfare reforms", true, false)
+            update_fifth_slide(false, "economy", true, true)
+            chartTitle
+                .transition()
+                .text("Time spent on the economy")
+            break
+        case 2:
+            update_fifth_slide(false, "welfare reforms", true, true)
             chartTitle
                 .transition()
                 .text("Time spent on welfare reforms")
-            break
-        case 2:
-            update_fifth_slide(false, "parliamentary terminology", true, false)
-            chartTitle
-                .transition()
-                .text("Time spent on parliamentary terminology")
             break
         case 3:
             update_fifth_slide(false, "parliamentary terminology", true, true)
