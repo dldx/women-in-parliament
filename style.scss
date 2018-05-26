@@ -1153,6 +1153,7 @@ input:checked + .slider:before {
   fill: map-get($colors, Hover);
   text-anchor: middle;
   transition: opacity .5s ease-in-out;
+  pointer-events: none;
   @include phone {
     font-size: 0.6rem;
   }

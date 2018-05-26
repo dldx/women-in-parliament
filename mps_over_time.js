@@ -731,6 +731,10 @@ function first_slide(no_transition = false) {
                 .transition()
                 .delay(3000)
                 .style("opacity", 0)
+                .on("end", () => {
+                    d3.selectAll(".annotation-group").remove()
+                })
+
 
             // Also select the mouseover line and fade it out
             if (IGNORE_STATE == false) {
@@ -2123,6 +2127,7 @@ function to_fifth_slide(current_slide) {
         // Fade out sixth slide
         d3.selectAll("#slide6-group, .x-custom-label, .y-axis")
             .style("opacity", 0)
+            .style("pointer-events", "none")
             .on("end", () => {
                 d3.selectAll(".x-custom-label")
                     .remove()
@@ -3041,7 +3046,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             .style("opacity", 1)
             .style("stroke-width", circleRadius)
 
-        d3.timeout(() => {
+        annotate_timer = d3.timeout(() => {
         // Annotate circle
             var tooltip_pos = tooltip.getBoundingClientRect()
             // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
@@ -3154,6 +3159,7 @@ function to_sixth_slide(current_slide) {
         break
     case 6:
         d3.select("#slide7-group").style("opacity", 0)
+            .style("pointer-events", "none")
         d3.selectAll(".x-axis path").style("opacity", 1)
     }
 
@@ -3244,6 +3250,9 @@ function sixth_slide(no_transition = false) {
         slide6Group = zoomedArea
             .append("g")
             .attr("id", "slide6-group")
+    } else {
+        d3.select("#slide6-group")
+            .style("pointer-events", "unset")
     }
 
     // Hide canvas
@@ -3702,6 +3711,7 @@ function to_seventh_slide(current_slide) {
         // Fade out sixth slide
         d3.selectAll("#slide6-group, .x-custom-label")
             .style("opacity", 0)
+            .style("pointer-events", "none")
             .on("end", () => {
                 d3.selectAll(".x-custom-label")
                     .remove()
@@ -3788,9 +3798,11 @@ function seventh_slide(no_transition = false) {
 
     if(no_transition) {
         var slide7Group = d3.select("#slide7-group").style("opacity", 1)
+            .style("pointer-events", "unset")
     } else {
 
         d3.select("#slide7-group").selectAll("*").remove()
+            .style("pointer-events", "unset")
 
         slide7Group = zoomedArea.append("g").attr("id", "slide7-group")
 
@@ -3801,10 +3813,12 @@ function seventh_slide(no_transition = false) {
             .enter().append("g")
             .attr("fill", d => colors[d.key])
 
-        bar_stack
-            .selectAll("rect")
-            .data(d => d)
-            .enter().append("rect")
+        var party_bar_group = bar_stack
+            .selectAll("g")
+            .data(d => {d.map(i => {i["party"] = d.key; return i}); return d})
+            .enter().append("g")
+
+        party_bar_group.append("rect")
             .attr("x", d => x(d.data.year))
             .attr("y", height)
             .attr("height", 0)
@@ -3818,11 +3832,79 @@ function seventh_slide(no_transition = false) {
             .style("stroke", (d) => d.data.year == "Future" ? colors["Hover"] : "unset")
             .style("fill", (d) => d.data.year == "Future" ? "none" : "unset")
 
+        party_bar_group.on("mouseover", function(d) {
+            // No hover for future or other party bar
+            if(d.data.year == "Future" || d.party == "Other") return
+            // Interrupt previous transition
+            d3.select("#tooltip").interrupt()
+            // Hide tooltip on scroll but wait for window to settle first
+            d3.timeout(() => {
+                window.addEventListener("scroll", () => {
+                    d3.select("#tooltip")
+                        .style("opacity", 0)
+
+                }, { once: true })
+            }, 1000)
+            // Hide tooltip after 5 secs
+            d3.select("#tooltip").transition().delay(5000)
+                .style("opacity", 0)
+                .on("end", () => {
+                    // Get rid of annotation line too
+                    d3.selectAll(".annotation-group").remove()
+                })
+
+                // Get mouse positions
+            var mousePos = d3.mouse(this)
+
+            d3.select("#tooltip")
+                .style("opacity", 1)
+                .classed("slide3-tooltip", true)
+                .style("transform", `translate(${Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2,
+                    width - tooltip.offsetWidth - margin.right),
+                0 + margin.left)}px,${Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20,
+                    height + tooltip.offsetHeight - 20), margin.top)}px)`)
+                .style("pointer-events", "none")
+            // Highlight rect
+            d3.select(this)
+                .select("rect")
+                .style("fill", colors["Hover"])
+
+            // Invert label colour
+            d3.select(this)
+                .select("text")
+                .style("fill", colors[d.party])
+
+            switch (d.party) {
+            case "Conservative":
+                var gender_ratio = d.data.Conservative_total/d.data.Conservative - 1
+                break
+            case "Labour":
+                gender_ratio = d.data.Labour_total/d.data.Labour - 1
+                break
+            case "Liberal":
+                gender_ratio = d.data.Liberal_total/d.data.Liberal - 1
+                break
+            }
+
+            // Tooltip information
+            tooltip.innerHTML = `<div class="slide2-tooltip"><h1 style="background-color: ${colorParty(d.party)};">${d.data.year} election</h1>
+                        For every <span class="female">female</span> ${d.party} candidate, there were
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> ${d.party} candidates.
+                        </div>`
+        })
+            .on("mouseout", function(d) {
+            // No hover for future or other party bar
+                if(d.data.year == "Future" || d.party == "Other") return
+                d3.select(this)
+                    .select("rect")
+                    .style("fill", "unset")
+                d3.select(this)
+                    .select("text")
+                    .style("fill", null)
+            })
+
         // Add some text labels for the values
-        bar_stack
-            .selectAll("text")
-            .data(d => d)
-            .enter()
+        party_bar_group
             .append("text")
             .classed("bar-label", true)
             .attr("x", d => x(d.data.year) + x.bandwidth()/2)
@@ -3846,6 +3928,7 @@ function seventh_slide(no_transition = false) {
             .duration(1)
             .delay((d,i) => 500 + i*100)
             .style("opacity", (d,i) => (i > 12) && !isMobile ? 1 : 0)
+
     }
 
     // Label 2018 election
@@ -3990,8 +4073,11 @@ function download_data() {
                 return {
                     year: d.Year,
                     Labour: +d.Lab_women,
+                    Labour_total: +d.Lab_total,
                     Conservative: +d.Con_women,
+                    Conservative_total: +d.Con_total,
                     Liberal: +d.Lib_women,
+                    Liberal_total: +d.Lib_total,
                     Other: +d.Other_women
                 }
             })
@@ -4892,6 +4978,10 @@ function handleStepEnter(response) {
         // Fifth slide
         d3.select("#slide4")
             .style("display", "none")
+
+        // Stop previous annotation timer
+        annotate_timer.stop()
+
         switch (new_step) {
         case 0:
             update_fifth_slide(false, "economy", true, false)
