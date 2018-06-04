@@ -2252,7 +2252,7 @@ function fifth_slide(no_transition = false) {
             .append("option")
             .attr("selected", d => d == selected_topic ? "selected" : null)
             .attr("value", d => d)
-            .text(d => dropdown_labels[d].toUpperCase())
+            .text(d => d.toUpperCase())
     }
 
     // Add search box for MPs
