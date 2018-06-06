@@ -136,12 +136,31 @@ body {
 
 #footer {
   margin: 5rem auto;
+  margin-bottom: 3rem;
   max-width: 50rem;
   @include phone {
     margin: 3rem 2rem;
   }
   @include tablet {
     margin: 5rem 2rem;
+  }
+}
+
+#credits {
+  opacity: 0.8;
+  font-size: 0.8rem;
+  margin: 0 auto;
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  @include phone {
+    margin: 3rem 2rem;
+  }
+  @include tablet {
+    margin: 5rem 2rem;
+  }
+
+  p {
+    margin: 0 auto;
   }
 }
 

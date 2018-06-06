@@ -47,7 +47,23 @@ var colors = {
     "Female": "#e5e5e5",
     "Hover": "#e5e5e5", // Used when hovering over an item
     "Active": "#A1C181" // Used for the active slide on the tracker
+};
 
+var party_abbreviations = {
+    "Lab": "Labour Party",
+    "Lib": "Liberal Party",
+    "Con": "Conservative Party",
+    "LD": "Liberal Democrats",
+    "SNP": "Scottish National Party",
+    "UU": "Ulster Unionist Party",
+    "SF": "Sinn Féin",
+    "Ind": "Independent",
+    "SDP": "Social Democratic Party",
+    "SLDP": "SDLP",
+    "Green": "Green Party",
+    "PC": "Plaid Cymru",
+    "DU": "Democratic Unionist Party",
+    "Ind. Unity": "Independent"
 
     // Track the current and desired slides for transitioning
 };var new_slide = 0;
@@ -560,7 +576,7 @@ function first_slide() {
     // On mouse out, change everything back
     .on("mouseout", function () {
         d3.select(tooltip).transition().delay(3000).style("opacity", 0).on("end", function () {
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
         });
 
         // Also select the mouseover line and fade it out
@@ -591,13 +607,13 @@ function show_mp_tooltip(nodeData, mousePos) {
         window.addEventListener("scroll", function () {
             d3.select("#tooltip").style("opacity", 0);
             // Get rid of annotation line too
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
         }, { once: true });
     }, 1000);
     // Hide tooltip after 5 secs
     d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
         // Get rid of annotation line too
-        d3.selectAll(".annotation-group").remove();
+        mouseover_svg.selectAll(".annotation-group").remove();
     });
 
     // Display tooltip
@@ -614,7 +630,7 @@ function show_mp_tooltip(nodeData, mousePos) {
             tooltip_innerHTML += "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64, " + mp_base64_data[nodeData.id] + "\"/>\n                <img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: " + (typeof nodeData.loaded == "undefined" ? 0 : nodeData.loaded) + (nodeData.loaded = 1) + ";\" onload=\"this.style.opacity = 1;\" />\n                ";
         }
     }
-    tooltip_innerHTML += "</div>\n            <div class=\"body-facts\">\n                    <div class=\"mp-term\">" + d3.timeFormat("%Y")(nodeData.term_start) + " &rarr;                     " + d3.timeFormat("%Y")(nodeData.term_end) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n                    ";
+    tooltip_innerHTML += "</div>\n            <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-term\">" + d3.timeFormat("%Y")(nodeData.term_start) + " &rarr;                     " + d3.timeFormat("%Y")(nodeData.term_end) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n                    ";
 
     tooltip.innerHTML = tooltip_innerHTML;
 
@@ -638,7 +654,7 @@ function show_mp_tooltip(nodeData, mousePos) {
         //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
         var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
 
-        d3.selectAll(".annotation-group").remove();
+        mouseover_svg.selectAll(".annotation-group").remove();
 
         var makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations([{
             note: {
@@ -689,7 +705,7 @@ function to_first_slide(current_slide) {
     // Hide tooltip
     d3.select("#tooltip").style("opacity", 0);
     // Get rid of annotation line too
-    d3.selectAll(".annotation-group").remove();
+    mouseover_svg.selectAll(".annotation-group").remove();
 
     // Show canvas
     d3.select("#visible-canvas").style("opacity", 1).style("display", null);
@@ -866,7 +882,7 @@ function second_slide() {
     // Hide the tooltip
     d3.select("#tooltip").style("opacity", 0);
     // Get rid of annotation line too
-    d3.selectAll(".annotation-group").remove();
+    mouseover_svg.selectAll(".annotation-group").remove();
 
     // Hide the mouseover line
     mouseover_svg.select("line").style("opacity", 0);
@@ -1058,13 +1074,13 @@ function second_slide() {
                 window.addEventListener("scroll", function () {
                     d3.select("#tooltip").style("opacity", 0);
                     // Get rid of annotation line too
-                    d3.selectAll(".annotation-group").remove();
+                    mouseover_svg.selectAll(".annotation-group").remove();
                 }, { once: true });
             }, 1000);
             // Hide tooltip after 5 secs
             d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
                 // Get rid of annotation line too
-                d3.selectAll(".annotation-group").remove();
+                mouseover_svg.selectAll(".annotation-group").remove();
             });
 
             // Get mouse positions
@@ -1668,7 +1684,7 @@ function fifth_slide() {
             d3.select(tooltip).style("opacity", 0);
 
             // Get rid of annotation line too
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
         }
         if (!val) {
             return false;
@@ -1836,7 +1852,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
     d3.select("#tooltip").style("opacity", 0);
 
     // Remove annotations
-    d3.selectAll(".annotation-group").remove();
+    mouseover_svg.selectAll(".annotation-group").remove();
 
     // Zoom out
     if (document.getElementById("zoom-checkbox") != null) {
@@ -2183,13 +2199,13 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             window.addEventListener("scroll", function () {
                 d3.select("#tooltip").style("opacity", 0);
                 // Get rid of annotation line too
-                d3.selectAll(".annotation-group").remove();
+                mouseover_svg.selectAll(".annotation-group").remove();
             }, { once: true });
         }, 1000);
         // Hide tooltip after 5 secs
         d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
             // Get rid of annotation line too
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
         });
         if (typeof mousePos === "undefined") {
             mousePos = [nodeData.x, nodeData.y]; //[width * 3 / 4, height * 3 / 4]
@@ -2203,7 +2219,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
 
         var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1;
         // Show relevant tooltip info
-        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"background-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n</div>";
+        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"background-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n</div>";
         // Also select the mouseover circle and move it to the right location
         mouseover_svg.select("circle").datum(nodeData).attr("cx", function (d) {
             return d.x;
@@ -2220,7 +2236,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
             var circle_pos = mouseover_svg.select("circle").node().getBoundingClientRect();
 
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
 
             var makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations([{
                 note: {
@@ -2252,14 +2268,14 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             window.addEventListener("scroll", function () {
                 d3.select("#tooltip").style("opacity", 0);
                 // Get rid of annotation line too
-                d3.selectAll(".annotation-group").remove();
+                mouseover_svg.selectAll(".annotation-group").remove();
             }, { once: true });
         }, 1000);
 
         // Hide tooltip after 5 secs
         d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
             // Get rid of annotation line too
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
         });
         d3.select("#tooltip").style("opacity", 1).classed("slide5-tooltip", true).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth / 2 - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
 
@@ -2280,7 +2296,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             //     height + 2*tooltip.offsetHeight - 20), margin.top + tooltip.offsetHeight)}
             var circle_pos = mouseover_svg.select("circle").node().getBoundingClientRect();
 
-            d3.selectAll(".annotation-group").remove();
+            mouseover_svg.selectAll(".annotation-group").remove();
 
             var makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations([{
                 note: {
@@ -2871,7 +2887,7 @@ function seventh_slide() {
             // Hide tooltip after 5 secs
             d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
                 // Get rid of annotation line too
-                d3.selectAll(".annotation-group").remove();
+                mouseover_svg.selectAll(".annotation-group").remove();
             });
 
             // Get mouse positions
@@ -3166,7 +3182,7 @@ function mpZoom(clean_name) {
     d3.select(tooltip).style("opacity", 0);
 
     // Get rid of annotation line too
-    d3.selectAll(".annotation-group").remove();
+    mouseover_svg.selectAll(".annotation-group").remove();
 
     // Set flag to not fade mouseover line
     IGNORE_STATE = true;
@@ -3202,7 +3218,7 @@ function handleStepEnter(response) {
     window.addEventListener("scroll", function () {
         d3.select("#tooltip").style("opacity", 0);
         // Get rid of annotation line too
-        d3.selectAll(".annotation-group").remove();
+        mouseover_svg.selectAll(".annotation-group").remove();
     }, { once: true });
     // Remove existing labels
     mouseover_svg.selectAll(".female-label, .male-label").remove();
@@ -3355,7 +3371,7 @@ function handleStepEnter(response) {
 
                     d3.select(".switch").style("opacity", 1).on("mouseover", function () {
                         d3.select("#tooltip").style("opacity", 0);
-                        d3.selectAll(".annotation-group").remove();
+                        mouseover_svg.selectAll(".annotation-group").remove();
                     }).select("#zoom-checkbox").on("change", function () {
                         if (this.checked) {
                             zoom.on("zoom", zoomed);
