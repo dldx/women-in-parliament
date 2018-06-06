@@ -713,6 +713,20 @@ $tip-padding: .5;
     word-break: break-all;
   }
 
+  .mp-partyname {
+    overflow: hidden;
+    margin-bottom: .5rem;
+
+    &::before {
+      content: 'PARTY';
+      font-weight: bolder;
+      font-size: .8rem;
+      margin-right: .5rem;
+      padding: 2px;
+      background-color: invert($tip-background);
+      color: $tip-background;
+    }
+  }
   .mp-term {
     overflow: hidden;
     margin-bottom: .5rem;
