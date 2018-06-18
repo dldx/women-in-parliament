@@ -4269,7 +4269,7 @@ function handleStepEnter(response) {
 
     }, { once: true })
     // Remove existing labels
-    mouseover_svg.selectAll(".female-label, .male-label").remove()
+    mouseover_svg.selectAll(".mp-annotation-group, .female-label, .male-label").remove()
 
     // go to next slide based on slide attribute
     new_slide = +$step.nodes()[response.index].getAttribute("data-slide")
@@ -4499,7 +4499,7 @@ function handleStepEnter(response) {
                     }])
                 mouseover_svg
                     .append("g")
-                    .attr("class", "annotation-group")
+                    .attr("class", "mp-annotation-group")
                     .call(makeAnnotations)
             }, zooming ? 2000 : 1000)
 
@@ -4528,7 +4528,7 @@ function handleStepEnter(response) {
                     }])
                 mouseover_svg
                     .append("g")
-                    .attr("class", "annotation-group")
+                    .attr("class", "mp-annotation-group")
                     .call(makeAnnotations)
             }, 1000)
             canvas.style("pointer-events", "none")
@@ -4555,7 +4555,7 @@ function handleStepEnter(response) {
                     }])
                 mouseover_svg
                     .append("g")
-                    .attr("class", "annotation-group")
+                    .attr("class", "mp-annotation-group")
                     .call(makeAnnotations)
             }, 1000)
 

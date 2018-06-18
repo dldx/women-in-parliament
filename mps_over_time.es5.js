@@ -3221,7 +3221,7 @@ function handleStepEnter(response) {
         mouseover_svg.selectAll(".annotation-group").remove();
     }, { once: true });
     // Remove existing labels
-    mouseover_svg.selectAll(".female-label, .male-label").remove();
+    mouseover_svg.selectAll(".mp-annotation-group, .female-label, .male-label").remove();
 
     // go to next slide based on slide attribute
     new_slide = +$step.nodes()[response.index].getAttribute("data-slide");
@@ -3418,7 +3418,7 @@ function handleStepEnter(response) {
                             dx: isMobile ? 30 : 100,
                             dy: 100
                         }]);
-                        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+                        mouseover_svg.append("g").attr("class", "mp-annotation-group").call(makeAnnotations);
                     }, zooming ? 2000 : 1000);
 
                     canvas.style("pointer-events", "none");
@@ -3442,7 +3442,7 @@ function handleStepEnter(response) {
                             dx: isMobile ? 30 : 100,
                             dy: 200
                         }]);
-                        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+                        mouseover_svg.append("g").attr("class", "mp-annotation-group").call(makeAnnotations);
                     }, 1000);
                     canvas.style("pointer-events", "none");
                     break;
@@ -3464,7 +3464,7 @@ function handleStepEnter(response) {
                             dx: isMobile ? 30 : 100,
                             dy: 200
                         }]);
-                        mouseover_svg.append("g").attr("class", "annotation-group").call(makeAnnotations);
+                        mouseover_svg.append("g").attr("class", "mp-annotation-group").call(makeAnnotations);
                     }, 1000);
 
                     canvas.style("pointer-events", "none");
