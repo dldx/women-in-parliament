@@ -156,6 +156,7 @@ var ratio,
     instance,
     x, y,
     chartTitle,
+    credit_alink,
     xAxis, gX, xLabel,
     yAxis, gY, yLabel,
     tooltip,
@@ -170,7 +171,8 @@ var ratio,
     mp_filter,
     isMobile,
     all_mps_draw_timer,
-    annotate_timer
+    annotate_timer,
+    tooltip_timer
 
 var mps_over_time_data,
     number_women_over_time_data,
@@ -302,7 +304,7 @@ function reset_zoom(callback, current_slide) {
             }
         })
 
-    d3.select(".switch").select("label").text("Make it zoomable")
+    d3.select(".switch").select("label").text("ZOOM")
 }
 // ----------------------------------------------------------------------------
 // UPDATE GRAPH WHEN USER MOVES TO A NEW SLIDE
@@ -389,8 +391,8 @@ function initial_render() {
     d3.select("body")
         .append("label")
         .attr("class", "switch")
-        .style("transform", `translateX(${margin.left * (isMobile ? 1.2 : 2)}px)`)
-        .html("<input type=\"checkbox\" id=\"zoom-checkbox\"><span class=\"slider\"></span><div><label for='zoom-checkbox'>Make it zoomable</label></div>")
+        .style("transform", `translate(${margin.left * (isMobile ? 1.2 : 2)}px, ${isMobile ? 0.15*height : margin.top/2}px)`)
+        .html("<input type=\"checkbox\" id=\"zoom-checkbox\"><span class=\"slider\"></span><div><label for='zoom-checkbox'>ZOOM</label></div>")
 
     // Add a bounding box to clip points so that they aren't visible outside
     // the chart area when we zoom in
@@ -457,13 +459,24 @@ function initial_render() {
         .text("")
 
     // Add axes labels
+    credit_alink = svg.append("a")
+        .attr("target", "_blank")
+    credit_alink.append("text")
+        .attr("transform",
+            "translate(" + (margin.left) + " ," +
+            (height + margin.top + margin.bottom) + ")")
+        .attr("class", "credit-label")
+        .style("text-anchor", "start")
+
+
+    // Add axes labels
     xLabel = svg.append("text")
         .attr("transform",
-            "translate(" + (width + margin.left + margin.right) / 2 + " ," +
-            (height + margin.top + margin.bottom*1.3) + ")")
+            "translate(" + (margin.left + margin.right + width)/2 + " ," +
+            (height + margin.top + margin.bottom) + ")")
         .attr("class", "x-label")
         .style("text-anchor", "middle")
-        .text("Year")
+        .text("")
 
     yLabel = svg.append("text")
         .attr("transform", "rotate(-90)")
@@ -471,7 +484,7 @@ function initial_render() {
         .attr("x", 0 - (height + margin.top + margin.bottom) / 2)
         .attr("class", "y-label")
         .attr("dominant-baseline", "baseline")
-        .text("Number of Female MPs")
+        .text("Number of Women MPs")
 
     // Add zoom capabilities for the points
     zoom = d3.zoom()
@@ -580,7 +593,7 @@ function add_election_rects(show_rect = true) {
         .data(total_mps_over_time_data)
         .enter()
         .append("rect")
-        .style("opacity", show_rect ? 0.15 : 0)
+        .style("opacity", show_rect ? 0.35 : 0)
         .attr("class", "election-rect")
         .classed("c-1", function (d, i) {
             return i % 2 == 0
@@ -618,6 +631,13 @@ function first_slide(no_transition = false) {
     chartTitle
         .transition()
         .text("Women MPs in the House of Commons")
+
+    // Change credits
+    credit_alink
+        .attr("xlink:href", "https://en.wikipedia.org/wiki/Women_in_the_United_States_House_of_Representatives#List_of_female_members")
+        .select("text")
+        .transition()
+        .text("Data: Wikipedia")
 
     // Add rectangles in the background to identify parliamentary terms
     add_election_rects(no_transition)
@@ -810,7 +830,7 @@ function show_mp_tooltip(nodeData, mousePos) {
 
     var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1
     var tooltip_innerHTML = `
-                    <h1 style="background-color: ${colorParty(nodeData.party)};">${nodeData.name}</h1>
+                    <h1 style="border-color: ${colorParty(nodeData.party)};">${nodeData.name}</h1>
                     <div class="body">
                 <div class="mp-image-parent">`
 
@@ -852,7 +872,7 @@ function show_mp_tooltip(nodeData, mousePos) {
         .style("stroke-width", lineThickness)
         .style("opacity", 1)
 
-    d3.timeout(() => {
+    tooltip_timer = d3.timeout(() => {
         // Point to MP
         var tooltip_pos = tooltip.getBoundingClientRect()
         // var tooltip_pos = {x: Math.max(Math.min(mousePos[0] - tooltip.offsetWidth,
@@ -910,9 +930,6 @@ function to_first_slide(current_slide) {
         t0.select("#info-bubbles")
             .style("opacity", 0)
             .remove()
-        d3.selectAll(".election-rect")
-            .on("mouseover", null)
-            .on("mouseout", null)
         break
     case 2:
         // Fade all objects belonging to second and third slides
@@ -928,6 +945,9 @@ function to_first_slide(current_slide) {
 
         break
     }
+    d3.selectAll(".election-rect")
+        .on("mouseover", null)
+        .on("mouseout", null)
 
     // Hide tooltip
     d3.select("#tooltip")
@@ -1104,6 +1124,8 @@ function second_slide(no_transition = false) {
     d3.select("#election-rects")
         .attr("clip-path", "url(#slide2-hover-mask)")
         .moveToFront()
+        .selectAll("rect")
+        .style("opacity", 0.25)
 
     // Add a 50% line to show halfway mark for gender
     half_max_mps_line = d3.line()
@@ -1344,6 +1366,13 @@ function second_slide(no_transition = false) {
         .duration(no_transition ? 0 : 750)
         .text("MPs in the House of Commons")
 
+    // Change credits
+    credit_alink
+        .attr("xlink:href", "https://en.wikipedia.org/wiki/Party_divisions_of_United_States_Congresses")
+        .select("text")
+        .transition()
+        .text("Data: Wikipedia")
+
     slide2Group.append("text")
         .attr("x", x(new Date(2017, 1, 1)))
         .attr("y", y(0) - 10 * lineThickness)
@@ -1448,7 +1477,7 @@ function second_slide(no_transition = false) {
                     return x(d.year)
                 })
                 .y(function (d) {
-                    return y(d.total_mps / 2 + 2)
+                    return y(d.total_mps / 2)
                 })
                 .curve(d3.curveBundle.beta(0.4))
 
@@ -1523,8 +1552,8 @@ function second_slide(no_transition = false) {
                         var gender_ratio = d.labour_mps / num_women - 1
                         tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
                         ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
-                        For every <span class="female">female</span> Labour MP, there ${new Date() > second_election ? "were" : "are"}
-                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> Labour MPs.` :
+                        For every <span class="female">woman</span> Labour MP, there ${new Date() > second_election ? "were" : "are"}
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">men</span> Labour MPs.` :
         "There were no Labour women in the House of Commons :("}
                         </div>
                         `
@@ -1536,8 +1565,8 @@ function second_slide(no_transition = false) {
                         gender_ratio = d.conservative_mps / num_women - 1
                         tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
                         ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
-                        For every <span class="female">female</span> Conservative MP, there ${new Date() > second_election ? "were" : "are"}
-                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> Conservative MPs.` :
+                        For every <span class="female">woman</span> Conservative MP, there ${new Date() > second_election ? "were" : "are"}
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">men</span> Conservative MPs.` :
         "There were no Conservative women in the House of Commons :("}
                         </div>
                         `
@@ -1549,8 +1578,8 @@ function second_slide(no_transition = false) {
                         gender_ratio = d.lib_snp_mps / num_women - 1
                         tooltip.innerHTML = `<div class="slide2-tooltip"><h1>${formatDate(first_election)} &rarr; ${formatDate(second_election)}</h1>
                         ${num_women > 0 ? `<p>${num_women} Wom${num_women == 1 ? "a" : "e"}n</p><hr/>
-                        For every <span class="female">female</span> Lib Dem or SNP MP, there ${new Date() > second_election ? "were" : "are"}
-                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> Lib Dem or SNP MPs.` :
+                        For every <span class="female">woman</span> Lib Dem or SNP MP, there ${new Date() > second_election ? "were" : "are"}
+                        <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">men</span> Lib Dem or SNP MPs.` :
         "There were no Lib Dem or SNP women in the House of Commons yet :("}
                         </div>
                         `
@@ -1631,7 +1660,7 @@ function to_third_slide(current_slide) {
                 .tickFormat(d => d)
 
             xLabel
-                .text("Year")
+                .text("")
                 .style("opacity", 1)
 
             yLabel
@@ -1688,6 +1717,12 @@ function third_slide(no_transition = false) {
         .transition()
         .style("opacity", 1)
         .text("Parliaments in developed countries")
+
+    // Change credits
+    credit_alink.attr("xlink:href", "https://data.worldbank.org/indicator/SG.GEN.PARL.ZS")
+        .select("text")
+        .transition()
+        .text("Data: Inter-parliamentary Union")
 
     // ----------------------------------------------------------------------------
     //  █████╗  ██████╗████████╗     ██╗
@@ -1767,7 +1802,7 @@ function third_slide(no_transition = false) {
         .attr("d", half_max_mps_line)
 
     half_max_mps_line_smooth
-        .y(() => y(51))
+        .y(() => y(50))
 
     text_path_50_50
         .transition(t0)
@@ -1779,7 +1814,7 @@ function third_slide(no_transition = false) {
 
     yLabel
         .transition(t0)
-        .text("% of Female Representatives")
+        .text("% of Women Representatives")
 
     // ----------------------------------------------------------------------------
     //  █████╗  ██████╗████████╗    ██████╗
@@ -1909,9 +1944,9 @@ function third_slide(no_transition = false) {
                 var gender_ratio = 100 / d.values.slice(-1)[0].women_pct - 1
                 tooltip.innerHTML = `
                             <div class="slide3-tooltip">
-                                <h1 style="background-color: ${d.values.slice(-1)[0].country == "United Kingdom" ? colors["Hover"] : countryColors(d.values.slice(-1)[0].country)}">${d.values.slice(-1)[0].country}</h1>
-                                For every <span class="female">female</span> representative, there were
-                                <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> representatives in ${d.values.slice(-1)[0].year.getFullYear()}.
+                                <h1 style="border-color: ${d.values.slice(-1)[0].country == "United Kingdom" ? colors["Hover"] : countryColors(d.values.slice(-1)[0].country)}">${d.values.slice(-1)[0].country}</h1>
+                                For every <span class="female">woman</span> representative, there were
+                                <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">men</span> representatives in ${d.values.slice(-1)[0].year.getFullYear()}.
                             </div>`
             }
         })
@@ -1984,9 +2019,9 @@ function third_slide(no_transition = false) {
             var gender_ratio = 100 / d.data.women_pct - 1
             tooltip.innerHTML = `
                             <div class="slide3-tooltip">
-                                <h1 style="background-color: ${d.data.country == "United Kingdom" ? colors["Hover"] : countryColors(d.data.country)};">${d.data.country}</h1>
-                                For every <span class="female">female</span> MP, there were
-                                <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">male</span> MPs in ${d.data.year.getFullYear()}.
+                                <h1 style="border-color: ${d.data.country == "United Kingdom" ? colors["Hover"] : countryColors(d.data.country)};">${d.data.country}</h1>
+                                For every <span class="female">woman</span> MP, there were
+                                <div class="gender-ratio">${gender_ratio.toFixed(1)}</div> <span class="male">men</span> MPs in ${d.data.year.getFullYear()}.
                             </div>`
             d.line = d3.select("#" + d.data.country.replace(/[^a-zA-Z0-9s]/g, ""))
             d.line
@@ -2090,6 +2125,13 @@ function to_fourth_slide(current_slide) {
         .style("opacity", 0)
     yLabel
         .style("opacity", 0)
+
+    // Change credits
+    credit_alink
+        .attr("xlink:href", null)
+        .select("text")
+        .transition()
+        .text("")
 
     d3.select("#tooltip")
         .transition(t0)
@@ -2208,6 +2250,13 @@ function fifth_slide(no_transition = false) {
     d3.selectAll(".slide5-dropdown")
         .remove()
 
+    // Change credits
+    credit_alink
+        .attr("xlink:href", "https://www.theyworkforyou.com/")
+        .select("text")
+        .transition()
+        .text("Data: TheyWorkForYou (raw transcripts)")
+
     wrapper.select(".x-custom-axis")
         .remove()
     wrapper.append("g")
@@ -2282,7 +2331,7 @@ function fifth_slide(no_transition = false) {
         .append("input")
         .attr("id", "mp-search")
         .attr("type", "text")
-        .attr("placeholder", "🔎 Search for your MP by name or constituency!")
+        .attr("placeholder", "🔎 Search for your MP by name or constituency")
 
 
     let inp = document.getElementById("mp-search")
@@ -2838,7 +2887,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             .type(d3.annotationCallout)
             .annotations([{
                 note: {
-                    title: "Median female: " + (topic_medians_data[selected_topic]["female"]*100).toFixed(1) + "%"
+                    title: "Median woman: " + (topic_medians_data[selected_topic]["female"]*100).toFixed(1) + "%"
                 },
                 connector: {
                     end: "dot"
@@ -2862,7 +2911,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             .type(d3.annotationCallout)
             .annotations([{
                 note: {
-                    title: "Median male: " + (topic_medians_data[selected_topic]["male"]*100).toFixed(1) + "%"
+                    title: "Median man: " + (topic_medians_data[selected_topic]["male"]*100).toFixed(1) + "%"
                 },
                 connector: {
                     end: "dot"
@@ -2955,7 +3004,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         // Show relevant tooltip info
         tooltip.innerHTML = `
                             <div class="slide5-tooltip">
-                    <h1 style="background-color: ${colorParty(nodeData.party)};">${nodeData.full_name}</h1>
+                    <h1 style="border-color: ${colorParty(nodeData.party)};">${nodeData.full_name}</h1>
                     <div class="body">
                     <div class="mp-image-parent">
                     ${typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" +
@@ -3053,8 +3102,8 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         // Show relevant tooltip info
         tooltip.innerHTML = `
                             <div class="slide5-tooltip">
-                    <h1 style="background-color: ${nodeData.gender == "female" ? colors["Female"] : colors["Male"]};">${nodeData.gender.toUpperCase()}</h1>
-                    The average ${nodeData.gender.toUpperCase()} MP spends <em>${(nodeData.median*100).toFixed(1)}%</em> of ${nodeData.gender == "male" ? "his" : "her"} time talking about <em>${selected_topic}</em>.
+                    <h1 style="border-color: ${nodeData.gender == "female" ? colors["Female"] : colors["Male"]};">${nodeData.gender.toUpperCase() == "female" ? "WOMEN" : "MEN"}</h1>
+                    The average ${nodeData.gender.toUpperCase() == "female" ? "WOMAN" : "MAN"} MP spends <em>${(nodeData.median*100).toFixed(1)}%</em> of ${nodeData.gender == "male" ? "his" : "her"} time talking about <em>${selected_topic}</em>.
 </div>`
         mouseover_svg
             .select("circle")
@@ -3165,6 +3214,7 @@ function to_sixth_slide(current_slide) {
 
         d3.select(".switch")
             .style("opacity", 0)
+            .style("display", "none")
         if (document.getElementById("zoom-checkbox") != null) {
             if (document.getElementById("zoom-checkbox")
                 .checked != false) {
@@ -3294,6 +3344,14 @@ function sixth_slide(no_transition = false) {
     d3.select(".slide5-search")
         .style("opacity", 0)
         .remove()
+
+    // Change credits
+    credit_alink
+        .attr("xlink:href", null)
+        .select("text")
+        .transition()
+        .text("")
+
 
     // Set the topics that will appear on the y axis
     let sorted_topics = Object.entries(topic_medians_data)
@@ -3712,6 +3770,7 @@ function to_seventh_slide(current_slide) {
 
         d3.select(".switch")
             .style("opacity", 0)
+            .style("display", "none")
         if (document.getElementById("zoom-checkbox") != null) {
             if (document.getElementById("zoom-checkbox")
                 .checked != false) {
@@ -3811,9 +3870,15 @@ function seventh_slide(no_transition = false) {
     // If we've already visited this slide, set no_transition to true
     no_transition = lastTransitioned >= 6
 
-    xLabel.text("Year")
-    yLabel.text("Number of Female Parliamentary Candidates")
-    chartTitle.text("Female Parliamentary Candidates over Time")
+    xLabel.text("")
+    yLabel.text("Number of Women Parliamentary Candidates")
+    chartTitle.text("Women Parliamentary Candidates over Time")
+    // Change credits
+    credit_alink
+        .attr("xlink:href", "http://cawp.rutgers.edu/facts/elections/past_candidates")
+        .select("text")
+        .transition()
+        .text("Data: House of Commons Library")
 
     if(no_transition) {
         var slide7Group = d3.select("#slide7-group").style("opacity", 1)
@@ -4306,13 +4371,13 @@ function handleStepEnter(response) {
                 // Unhighlight 97 election
                 electionRects.filter((d, i) => i == 22)
                     .classed("hover", false)
-                    .style("opacity", 0.15)
+                    .style("opacity", 0.35)
             }
             // Show election rects
             electionRects
                 .transition()
                 .delay((d, i) => i * 50)
-                .style("opacity", 0.15)
+                .style("opacity", 0.35)
             break
         case 0.1:
             // Highlight '97 election
@@ -4347,6 +4412,7 @@ function handleStepEnter(response) {
             if (response.direction == "up") {
                 d3.select(".switch")
                     .style("opacity", 0)
+                    .style("display", "none")
                 if (document.getElementById("zoom-checkbox")
                     .checked != false) {
                     document.getElementById("zoom-checkbox")
@@ -4366,7 +4432,7 @@ function handleStepEnter(response) {
             // Unhighlight 97 election
             electionRects.filter((d, i) => i == 22)
                 .classed("hover", false)
-                .style("opacity", 0.15)
+                .style("opacity", 0.35)
             // Draw lines for longest serving woman
             dataContainer.selectAll("custom.line")
                 .filter(d => d.clean_name == "margaretbeckett")
@@ -4432,6 +4498,7 @@ function handleStepEnter(response) {
 
             d3.select(".switch")
                 .style("opacity", 1)
+                .style("display", "inline-block")
                 .on("mouseover", () => {
                     d3.select("#tooltip")
                         .style("opacity", 0)
@@ -4445,7 +4512,7 @@ function handleStepEnter(response) {
                         d3.select(".is-active")
                             .style("opacity", 0)
                             .style("pointer-events", "none")
-                        d3.select(".switch").select("label").text("Stop zooming")
+                        d3.select(".switch").select("label").text("STOP")
                     } else {
                         reset_zoom()
                         d3.select(".is-active")
@@ -4466,6 +4533,7 @@ function handleStepEnter(response) {
         case 1:
             d3.select(".switch")
                 .style("opacity", 0)
+                .style("display", "none")
             if (document.getElementById("zoom-checkbox")
                 .checked != false) {
                 document.getElementById("zoom-checkbox")
@@ -4481,7 +4549,7 @@ function handleStepEnter(response) {
                 all_mps_draw_timer.stop()
                 mpZoom("constancemarkievicz", "mid", 10, 0, width / 4)
             }
-            // Annotate Jeannette
+            // Annotate Constance
             annotate_timer = d3.timeout(() => {
                 var line_pos = mouseover_svg.select("line").node().getBoundingClientRect()
 
@@ -4568,6 +4636,7 @@ function handleStepEnter(response) {
             canvas.style("pointer-events", "all")
             d3.select(".switch")
                 .style("opacity", 1)
+                .style("display", "inline-block")
 
             mouseover_svg.transition()
                 .duration(1000)
@@ -4599,6 +4668,7 @@ function handleStepEnter(response) {
         case 6:
             d3.select(".switch")
                 .style("opacity", 0)
+                .style("display", "none")
             if (document.getElementById("zoom-checkbox")
                 .checked != false) {
                 document.getElementById("zoom-checkbox")
@@ -4670,6 +4740,7 @@ function handleStepEnter(response) {
             if (response.direction == "up") {
                 d3.select(".switch")
                     .style("opacity", 0)
+                    .style("display", "none")
                 if (document.getElementById("zoom-checkbox")
                     .checked != false) {
                     document.getElementById("zoom-checkbox")
@@ -4713,6 +4784,7 @@ function handleStepEnter(response) {
         case 8:
             d3.select(".switch")
                 .style("opacity", 1)
+                .style("display", "inline-block")
 
             if (response.direction == "up") {
                 // Draw canvas if coming from below
@@ -4742,7 +4814,7 @@ function handleStepEnter(response) {
                     .text("Number of MPs")
                 chartTitle
                     .transition()
-                    .text("Representatives in Congress")
+                    .text("MPs in the House of Commons")
 
                 slide2Group.select(".party-label").transition().text("")
                 // All MPs first
@@ -4765,7 +4837,7 @@ function handleStepEnter(response) {
                 half_max_mps_path.transition()
                     .attr("d", half_max_mps_line)
 
-                half_max_mps_line_smooth.y(d => y(d.total_mps / 2 + 3.5))
+                half_max_mps_line_smooth.y(d => y(d.total_mps / 2))
                 text_path_50_50
                     .transition()
                     .attr("d", half_max_mps_line_smooth)
@@ -4815,7 +4887,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(51))
+            half_max_mps_line_smooth.y(y(50))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -4863,7 +4935,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(51))
+            half_max_mps_line_smooth.y(y(50))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -4911,7 +4983,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(51))
+            half_max_mps_line_smooth.y(y(50))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -4956,7 +5028,7 @@ function handleStepEnter(response) {
             half_max_mps_path.transition()
                 .attr("d", half_max_mps_line)
 
-            half_max_mps_line_smooth.y(y(51))
+            half_max_mps_line_smooth.y(y(50))
             text_path_50_50
                 .transition()
                 .attr("d", half_max_mps_line_smooth)
@@ -4981,6 +5053,7 @@ function handleStepEnter(response) {
             .style("display", "none")
         d3.select(".switch")
             .style("opacity", 0)
+            .style("display", "none")
         if (document.getElementById("zoom-checkbox") != null) {
             if (document.getElementById("zoom-checkbox")
                 .checked != false) {
