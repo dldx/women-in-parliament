@@ -17,8 +17,10 @@ $margin-right: 50;
 $margin-bottom: 30;
 $margin-left: 25;
 $tracker-colors: #5c5c5c, #424242;
-$body-background: #131313;
-$graph-background: #252525;
+$body-background: #0B0B0B;
+$body-foreground: #FFFAE9;
+$graph-background: #2A2A2A;
+$graph-foreground: $body-foreground;
 $tip-background: $body-background;
 $female: map-get($colors, Female);
 $male: map-get($colors, Male);
@@ -46,57 +48,172 @@ $desktop-width: 1024px;
     @content;
   }
 }
+/*
+	        This font software is the property of Commercial Type.
+
+	        You may not modify the font software, use it on another website, or install it on a computer.
+
+	        License information is available at http://commercialtype.com/eula
+	        For more information please visit Commercial Type at http://commercialtype.com or email us at info[at]commercialtype.com
+
+	        Copyright (C) 2017 Schwartzco Inc.
+	        License: 1704-GNCLGK
+	*/
+/* Canela */
+@font-face {
+  font-family: 'Canela Web';
+  src: url("https://pudding.cool/assets/fonts/canela/Canela-Light-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/canela/Canela-Light-Web.woff") format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-stretch: normal;
+}
+@font-face {
+  font-family: 'Canela Web';
+  src: url("https://pudding.cool/assets/fonts/canela/Canela-Bold-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/canela/Canela-Bold-Web.woff") format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-stretch: normal;
+}
+/* Publico Text */
+@font-face {
+  font-family: 'Publico Text Web';
+  src: url("https://pudding.cool/assets/fonts/publico/PublicoText-Roman-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/publico/PublicoText-Roman-Web.woff") format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-stretch: normal;
+}
+@font-face {
+  font-family: 'Publico Text Web';
+  src: url("https://pudding.cool/assets/fonts/publico/PublicoText-Bold-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/publico/PublicoText-Bold-Web.woff") format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-stretch: normal;
+}
+@font-face {
+  font-family: 'Publico Text Web';
+  src: url("https://pudding.cool/assets/fonts/publico/PublicoText-Italic-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/publico/PublicoText-Italic-Web.woff") format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-stretch: normal;
+}
+/* Atlast Grotesk */
+/*
+		@font-face {
+			font-family: 'Atlas Grotesk Web';
+			src: url('https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Light-Web.woff2') format('woff2'),
+			url('https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Light-Web.woff') format('woff');
+			font-weight: 300;
+			font-style: normal;
+			font-stretch: normal;
+		}
+		*/
+@font-face {
+  font-family: 'Atlas Grotesk Web';
+  src: url("https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Regular-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Regular-Web.woff") format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-stretch: normal;
+}
+@font-face {
+  font-family: 'Atlas Grotesk Web';
+  src: url("https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Medium-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Medium-Web.woff") format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-stretch: normal;
+}
+@font-face {
+  font-family: 'Atlas Grotesk Web';
+  src: url("https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Bold-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/atlas/AtlasGrotesk-Bold-Web.woff") format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-stretch: normal;
+}
 
 body {
   -webkit-font-smoothing: antialiased;
   background-color: $body-background;
-  color: invert($body-background);
-  font-family: 'Quicksand', sans-serif;
+  color: $body-foreground;
+  font-family: 'Atlas Grotesk Web', sans-serif;
   font-size: 1em;
   font-weight: 400;
   line-height: 2;
   margin: auto 0;
 }
 
-#header {
-  margin: 5rem auto;
-  max-width: 50rem;
+#pudding-logo {
+  margin: 2.5rem auto 5rem;
+  display: inline-block;
+  transform: translateX(calc(50vw - 50%));
+}
+
+#other-project-link {
+  position: absolute;
+  left: 5%;
+  top: 2rem;
+  display: inline-block;
   @include phone {
-    margin: 1.5rem;
+    left: 0;
+    transform: translateX(calc(50vw - 50%));
+    margin-left: unset;
+    top: 6rem;
   }
+  @include tablet {
+    left: 0;
+    transform: translateX(calc(50vw - 50%));
+    margin-left: unset;
+    top: 6rem;
+  }
+}
+
+#header {
+  background: linear-gradient(180deg, #0B0B0B 0%, #2A2A2A 100%);
+  margin: 0 auto;
+  padding-bottom: 2rem;
 
   h1 {
-    margin: .5rem auto;
+    font-family: 'Canela Web','Publico Text Web',Georgia,Times,serif;
+    color: #FCDCBF;
+    max-width: 50rem;
+    margin: 2rem auto 0;
     text-align: center;
     font-size: 4rem;
-    font-weight: bold;
-    line-height: 1.5;
+    font-weight: lighter;
+    line-height: 1.2;
     @include phone {
+      max-width: 30rem;
       font-size: 2.5rem;
     }
   }
 
   h2 {
-    margin: .5rem auto;
+    font-family: 'Atlas Grotesk Web', sans-serif;
+    margin: 0 auto .5rem;
     text-align: center;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: lighter;
+    max-width: 50rem;
     @include phone {
+      max-width: 30rem;
       font-size: 1.2rem;
     }
   }
 
   h3 {
-    margin-top: .5rem;
+    margin: 5rem auto;
     text-align: center;
     font-size: 1rem;
     font-weight: lighter;
   }
 
   p {
-    margin: 3rem;
+    max-width: 40rem;
+    margin: 3rem auto;
+    line-height: 1.7;
     @include phone {
-      margin: 2rem 1rem;
+      max-width: 30rem;
+      margin: 2rem auto;
+      padding-left: 1rem;
+      padding-right: 1rem;
     }
   }
 }
@@ -135,8 +252,7 @@ body {
 }
 
 #footer {
-  margin: 5rem auto;
-  margin-bottom: 3rem;
+  margin: 5rem auto 3rem;
   max-width: 50rem;
   @include phone {
     margin: 3rem 2rem;
@@ -147,10 +263,9 @@ body {
 }
 
 #credits {
-  opacity: 0.8;
-  font-size: 0.8rem;
-  margin: 0 auto;
-  margin-bottom: 5rem;
+  opacity: .8;
+  font-size: .8rem;
+  margin: 0 auto 5rem;
   max-width: 50rem;
   @include phone {
     margin: 3rem 2rem;
@@ -197,7 +312,7 @@ body {
   max-width: 30rem;
   transition: 1s opacity ease-in-out;
   @include phone {
-  padding-left: $margin-left + px;
+    padding-left: $margin-left + px;
     width: calc(100% - #{$margin-left + px} - #{$margin-right + px} - 1px);
   }
 }
@@ -205,15 +320,15 @@ body {
 .footnote {
   display: inline;
   cursor: help;
-  text-decoration: none;
-  background-color: nth($tracker-colors, 1);
+  text-decoration: underline;
+  // background-color: nth($tracker-colors, 1);
   padding-left: 2px;
   padding-right: 2px;
   // margin-right: 2px;
 }
 
 .footnote span {
-  max-width: 60ch;
+  max-width: 60vw;
   left: 0;
   right: 0;
   margin: 3ex auto auto;
@@ -221,13 +336,17 @@ body {
   display: none;
   position: absolute;
   padding: 14px 20px;
-  border-radius: 4px;
+  border-radius: 0;
   box-shadow: 3px 3px 5px rgba($tip-background, .8);
   background-color: map-get($colors, Hover);
   border: 1px solid darken(map-get($colors, Hover), 20);
   color: $body-background;
   font-size: small;
   transition: all .5s ease;
+
+  a {
+    color: $body-background;
+  }
 }
 
 .footnote:hover span {
@@ -285,13 +404,12 @@ tr td:hover {
   position: relative !important;
   z-index: 99;
   background-color: rgba($tip-background, .8);
-  color: invert($tip-background);
-  border: solid 1px $tip-background;
-  border-radius: 5px;
+  border-right: solid 5px $body-foreground;
+  border-radius: 0;
   -webkit-box-shadow: 1px 1px 5px rgba($tip-background, .8);
   box-shadow: 1px 1px 5px rgba($tip-background, .8);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   // height: 33vh !important;
   // height: unset !important;
   width: 40vw !important;
@@ -311,7 +429,7 @@ tr td:hover {
     width: 100% !important;
     min-width: 85vw;
     font-size: .8rem;
-    font-weight: 500;
+    font-weight: 400;
   }
   @include tablet {
     width: 100% !important;
@@ -332,13 +450,10 @@ tr td:hover {
     padding: 0 !important;
     border: 0;
     p {
-      margin: 1rem;
+      margin: 1em;
     }
   }
 
-  p {
-    margin: 0;
-  }
 
   p + p {
     margin-top: 1em;
@@ -358,7 +473,15 @@ tr td:hover {
   }
 
   .body-text {
+    padding: .5rem 1rem;
     grid-area: text;
+    @include phone {
+      padding: 0 0 .5rem;
+
+      hr {
+        opacity: 0;
+      }
+    }
   }
 
   .mp-constituency {
@@ -375,7 +498,7 @@ tr td:hover {
 
   .mp-party-logo {
     grid-area: photo;
-    padding-left: 0.25em;
+    padding-left: .25em;
     @include phone {
       opacity: 0 !important;
     }
@@ -384,7 +507,7 @@ tr td:hover {
   h3 {
     margin-top: .2em;
     margin-bottom: .2em;
-}
+  }
 }
 
 .annotation path {
@@ -402,7 +525,7 @@ tr td:hover {
 }
 
 #zoom-checkbox {
-  top: 15%;
+  top: 0;
   position: fixed;
   z-index: 6;
   opacity: 0;
@@ -428,29 +551,29 @@ tr td:hover {
 }
 
 a {
-  color: crimson;
-  text-decoration: none;
+  color: $graph-foreground;
+  text-decoration: underline;
 }
-
 
 .x-axis line,
 .x-axis path,
 .y-axis line,
 .y-axis path {
   // stroke-opacity: 0;
-  stroke: invert($graph-background);
+  stroke: $graph-foreground;
   stroke-width: .5;
 }
 
+.credit-label,
 .x-axis text,
 .x-label,
 .y-axis text,
 .y-label {
   pointer-events: none;
-  fill: invert($graph-background);
-  font-family: 'Quicksand', sans-serif;
+  fill: $graph-foreground;
+  font-family: 'Atlas Grotesk Web', sans-serif;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   -webkit-transition: opacity .5s ease-in-out;
   transition: opacity .5s ease-in-out;
   @include phone {
@@ -477,11 +600,12 @@ a {
   transition: opacity .5s ease-in-out;
 }
 
+.credit-label,
 .x-label,
 .y-label {
   text-anchor: middle;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   -webkit-transition: opacity .5s ease-in-out;
   transition: opacity .5s ease-in-out;
   @include phone {
@@ -489,8 +613,16 @@ a {
   }
 }
 
+.credit-label,
 .x-label {
   alignment-baseline: hanging;
+  dominant-baseline: hanging;
+}
+
+.credit-label {
+  fill: fade-out($graph-foreground, 0.2);
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 #timeline {
@@ -560,7 +692,7 @@ a {
 }
 
 .election-rect {
-  opacity: .15;
+  opacity: .35;
   @each $item in $tracker-colors {
     &.c-#{index($tracker-colors, $item)} {
       fill: $item;
@@ -608,14 +740,13 @@ $tip-padding: .5;
 .tooltip {
   z-index: 99;
   opacity: 1;
-  background-color: rgba($tip-background, .9);
-  color: invert($tip-background);
-  border: solid 1px $tip-background;
-  border-radius: 5px;
-  -webkit-box-shadow: 1px 1px 5px rgba($tip-background, .8);
-  box-shadow: 1px 1px 5px rgba($tip-background, .8);
+  background-color: rgba($tip-background, .8);
+  // color: invert($tip-background);
+  border-radius: 0;
+  // -webkit-box-shadow: 1px 1px 5px rgba($tip-background, .8);
+  // box-shadow: 1px 1px 5px rgba($tip-background, .8);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   // height: 20vh;
   width: 40vw;
   max-width: 35rem;
@@ -668,7 +799,8 @@ $tip-padding: .5;
     }
 
     h1 {
-      background-color: $slide2-header-color;
+      text-transform: uppercase;
+      border-color: $slide2-header-color;
     }
   }
 
@@ -677,7 +809,7 @@ $tip-padding: .5;
     font-weight: 200;
 
     h1 {
-      background-color: $info-bubble-header-color;
+      border-color: $info-bubble-header-color;
     }
 
     .date {
@@ -694,10 +826,14 @@ $tip-padding: .5;
     font-size: 1rem;
     font-weight: bold;
     margin-top: 0;
+    margin-bottom: 0;
     margin-bottom: $tip-padding + rem;
-    padding: 0.5rem;
+    padding: .5rem;
     text-align: center;
     text-shadow: 1px 1px 1px rgba(black, .5);
+    border-top: 5px solid;
+    color: #FCDCBF;
+    background-color: #151515;
     @include phone {
       font-size: .8rem;
       // padding: 0.2rem;
@@ -714,7 +850,7 @@ $tip-padding: .5;
     @include phone {
       margin-top: $tip-padding/2 + rem;
       margin-bottom: $tip-padding/2 + rem;
-  }
+    }
   }
   // This is for parties that don't have a logo
   .mp-party,
@@ -746,6 +882,7 @@ $tip-padding: .5;
       color: $tip-background;
     }
   }
+
   .mp-term {
     overflow: hidden;
     margin-bottom: .5rem;
@@ -823,8 +960,7 @@ $tip-padding: .5;
   //   display: flex;
   // }
   .body {
-    padding: 0.5em !important;
-    padding-top: 0em !important;
+    padding: 0 .5em !important;
     display: grid;
     grid-template-columns: 5.5rem auto;
     grid-template-areas: "photo facts";
@@ -845,7 +981,7 @@ $tip-padding: .5;
   position: fixed;
   left: 0;
   top: 0;
-        opacity: 0;
+  opacity: 0;
   // transform: translate(20vh, 25vh) translateZ(0);
   transition: transform .1s ease-in-out;
   box-shadow: 1px 1px 5px rgba($tip-background, .8);
@@ -857,7 +993,7 @@ $tip-padding: .5;
     margin: auto;
     width: calc(100% - #{$margin-left + px} - #{$margin-right + px} - 1px) !important;
     transform: none !important;
-      }
+  }
 
   &::after {
     border-bottom: 2px solid map-get($colors, Hover);
@@ -865,28 +1001,29 @@ $tip-padding: .5;
     padding-bottom: .5rem;
     display: block;
     margin: 0 auto;
-      }
-    }
+  }
+}
 
-.slide2-tooltip, .slide3-tooltip {
-      @include phone {
-      line-height: 1.2;
+.slide2-tooltip,
+.slide3-tooltip {
+  @include phone {
+    line-height: 1.2;
     top: 10% !important;
-      }
-    }
+  }
+}
 
 .slide5-tooltip {
-      @include phone {
+  @include phone {
     left: $margin-left / 2 + px !important;
-      }
-    }
+  }
+}
 
 .slide5-search {
   display: inline-block;
   vertical-align: middle;
   // text-align: center;
   transform: translateZ(0) translateX(10vw);
-      font-size: 1rem;
+  font-size: 1rem;
   font-weight: 200;
   position: fixed;
   z-index: 50;
@@ -896,8 +1033,8 @@ $tip-padding: .5;
   right: 0;
   // margin: 0 auto;
   width: 50%;
-  max-width: 80ch;
-      @include phone {
+  max-width: 50vw;
+  @include phone {
     font-size: .8rem;
     width: 70vw;
   }
@@ -906,13 +1043,13 @@ $tip-padding: .5;
     font-size: inherit;
     border: 1px solid rgb(169, 169, 169);
     background-color: $graph-background;
-    color: invert($graph-background);
+    color: $graph-foreground;
     width: 100%;
     padding: .5em;
     margin: 0;
     border-radius: 3px;
     box-sizing: border-box;
-}
+  }
 
   .autocomplete-items {
     position: absolute;
@@ -946,7 +1083,7 @@ $tip-padding: .5;
   .autocomplete-active {
     //when navigating through the items using the arrow keys:
     background-color: $male !important;
-    color: invert($graph-background);
+    color: $graph-foreground;
   }
 }
 
@@ -987,7 +1124,7 @@ $tip-padding: .5;
   padding-right: 2.5em;
   @include phone {
     padding-right: 1.5em;
-}
+  }
 }
 
 .slide5-dropdown::after {
@@ -1004,10 +1141,10 @@ $tip-padding: .5;
 }
 
 .switch {
-  display: inline-block;
+  display: none;
   width: 52px;
   height: 25px;
-  top: 15%;
+  top: 0;
   transform: translateZ(0);
   position: fixed;
   z-index: 6;
@@ -1021,19 +1158,19 @@ $tip-padding: .5;
 
 .switch div {
   width: 30vw;
-  transform: translate(57px, -2px);
+  transform: translate(57px, -50%);
 }
 
 .switch div label {
-    cursor: pointer;
-  @include phone {
-    font-size: small;
-}
+  font-size: small;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .slider {
   position: absolute;
   cursor: pointer;
+  transform: translateY(-50%);
   top: 0;
   left: 0;
   right: 0;
@@ -1076,10 +1213,11 @@ input:checked + .slider:before {
 }
 
 .chart-title {
-  fill: invert($graph-background);
-  font-family: 'Quicksand', sans-serif;
+  fill: $graph-foreground;
+  font-family: 'Atlas Grotesk Web', sans-serif;
   font-size: 1rem;
   font-weight: 600;
+  dominant-baseline: middle;
 }
 
 .half-max-mps-path,
@@ -1101,8 +1239,9 @@ input:checked + .slider:before {
 }
 
 .half-max-mps-path {
-  stroke-dasharray: 5,10;
+  stroke-dasharray: 1,4;
   stroke: $female;
+  stroke-width: 2.5;
 }
 
 .total-women-mps-area {
@@ -1117,12 +1256,13 @@ input:checked + .slider:before {
 .men-label,
 .party-label,
 .women-label {
-  font-weight: 500;
+  text-transform: uppercase;
+  font-weight: bold;
   text-anchor: end;
-  font-size: 2.5rem;
+  font-size: 2rem;
   @include phone {
     font-size: 1.5rem;
-}
+  }
 }
 
 .women-label {
@@ -1139,20 +1279,21 @@ input:checked + .slider:before {
 }
 
 .i5050-label {
-  // alignment-baseline: ideographic;
+  alignment-baseline: middle;
   text-anchor: middle;
   fill: $female;
-  font-size: 2rem;
+  font-size: 1.5rem;
   @include phone {
     font-size: 1rem;
-}
+  }
 }
 
 .women-pct-track {
   stroke: steelblue;
 }
 
-.female-label, .country-label {
+.country-label,
+.female-label {
   text {
     fill: $female;
   }
@@ -1161,7 +1302,8 @@ input:checked + .slider:before {
     stroke: $female;
   }
 
-  .connector-dot, .connector-arrow {
+  .connector-arrow,
+  .connector-dot {
     // stroke: unset;
     fill: $female;
   }
@@ -1188,15 +1330,19 @@ input:checked + .slider:before {
   transition: opacity .5s ease-in-out;
   pointer-events: none;
   @include phone {
-    font-size: 0.6rem;
+    font-size: .6rem;
   }
 }
 
 .i2018-label {
   animation: fadein .5s;
 }
-
 @keyframes fadein {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
