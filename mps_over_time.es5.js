@@ -464,7 +464,7 @@ function first_slide() {
     chartTitle.transition().text("Women MPs in the House of Commons");
 
     // Change credits
-    credit_alink.attr("xlink:href", "https://en.wikipedia.org/wiki/Women_in_the_United_States_House_of_Representatives#List_of_female_members").select("text").transition().text("Data: Wikipedia");
+    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library, Wikidata, TheyWorkForYou");
 
     // Add rectangles in the background to identify parliamentary terms
     add_election_rects(no_transition);
@@ -2860,7 +2860,7 @@ function seventh_slide() {
     yLabel.text("Number of Women Parliamentary Candidates");
     chartTitle.text("Women Parliamentary Candidates over Time");
     // Change credits
-    credit_alink.attr("xlink:href", "http://cawp.rutgers.edu/facts/elections/past_candidates").select("text").transition().text("Data: House of Commons Library");
+    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library");
 
     if (no_transition) {
         var slide7Group = d3.select("#slide7-group").style("opacity", 1).style("pointer-events", "unset");
@@ -2897,54 +2897,6 @@ function seventh_slide() {
             return d.data.year == "Future" ? "none" : "unset";
         });
 
-        party_bar_group.on("mouseover", function (d) {
-            // No hover for future or other party bar
-            if (d.data.year == "Future" || d.party == "Other") return;
-            // Interrupt previous transition
-            d3.select("#tooltip").interrupt();
-            // Hide tooltip on scroll but wait for window to settle first
-            d3.timeout(function () {
-                window.addEventListener("scroll", function () {
-                    d3.select("#tooltip").style("opacity", 0);
-                }, { once: true });
-            }, 1000);
-            // Hide tooltip after 5 secs
-            d3.select("#tooltip").transition().delay(5000).style("opacity", 0).on("end", function () {
-                // Get rid of annotation line too
-                mouseover_svg.selectAll(".annotation-group").remove();
-            });
-
-            // Get mouse positions
-            var mousePos = d3.mouse(this);
-
-            d3.select("#tooltip").style("opacity", 1).classed("slide3-tooltip", true).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth / 2, width - tooltip.offsetWidth - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
-            // Highlight rect
-            d3.select(this).select("rect").style("fill", colors["Hover"]);
-
-            // Invert label colour
-            d3.select(this).select("text").style("fill", colors[d.party]);
-
-            switch (d.party) {
-                case "Conservative":
-                    var gender_ratio = d.data.Conservative_total / d.data.Conservative - 1;
-                    break;
-                case "Labour":
-                    gender_ratio = d.data.Labour_total / d.data.Labour - 1;
-                    break;
-                case "Liberal":
-                    gender_ratio = d.data.Liberal_total / d.data.Liberal - 1;
-                    break;
-            }
-
-            // Tooltip information
-            tooltip.innerHTML = "<div class=\"slide2-tooltip\"><h1 style=\"background-color: " + colorParty(d.party) + ";\">" + d.data.year + " election</h1>\n                        For every <span class=\"female\">female</span> " + d.party + " candidate, there were\n                        <div class=\"gender-ratio\">" + gender_ratio.toFixed(1) + "</div> <span class=\"male\">male</span> " + d.party + " candidates.\n                        </div>";
-        }).on("mouseout", function (d) {
-            // No hover for future or other party bar
-            if (d.data.year == "Future" || d.party == "Other") return;
-            d3.select(this).select("rect").style("fill", "unset");
-            d3.select(this).select("text").style("fill", null);
-        });
-
         // Add some text labels for the values
         party_bar_group.append("text").classed("bar-label", true).attr("x", function (d) {
             return x(d.data.year) + x.bandwidth() / 2;
@@ -2967,31 +2919,6 @@ function seventh_slide() {
             return i > 12 && !isMobile ? 1 : 0;
         });
     }
-
-    // Label 2018 election
-    // var make_2018_label = d3.annotation()
-    //     .type(d3.annotationCallout)
-    //     .annotations([{
-    //         note: {
-    //             title: "Record number of women in 2018 ????",
-    //             wrap: 250
-    //         },
-    //         connector: {
-    //             end: "dot"
-    //         },
-    //         //can use x, y directly instead of data
-    //         x: x("2017") + x.bandwidth()/2,
-    //         y: y(320),
-    //         dx: x("2010") - x("2017"),
-    //         dy: y(370) - y(320),
-    //     }])
-    //
-    // d3.timeout(() => {
-    //     slide7Group
-    //         .append("g")
-    //         .attr("class", "i2018-label")
-    //         .call(make_2018_label)
-    // }, 14*100+500)
 }
 
 // ----------------------------------------------------------------------------
