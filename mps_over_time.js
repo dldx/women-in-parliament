@@ -637,7 +637,7 @@ function first_slide(no_transition = false) {
         .attr("xlink:href", null)
         .select("text")
         .transition()
-        .text("Data: House of Commons Library, Wikidata, TheyWorkForYou")
+        .text("Data: House of Commons Library, Wikidata, TheyWorkForYou, MySociety")
 
     // Add rectangles in the background to identify parliamentary terms
     add_election_rects(no_transition)
@@ -1368,10 +1368,10 @@ function second_slide(no_transition = false) {
 
     // Change credits
     credit_alink
-        .attr("xlink:href", "https://en.wikipedia.org/wiki/Party_divisions_of_United_States_Congresses")
+        .attr("xlink:href", "http://researchbriefings.parliament.uk/ResearchBriefing/Summary/CBP-7529")
         .select("text")
         .transition()
-        .text("Data: Wikipedia")
+        .text("Data: House of Commons Library")
 
     slide2Group.append("text")
         .attr("x", x(new Date(2017, 1, 1)))

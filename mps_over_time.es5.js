@@ -464,7 +464,7 @@ function first_slide() {
     chartTitle.transition().text("Women MPs in the House of Commons");
 
     // Change credits
-    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library, Wikidata, TheyWorkForYou");
+    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library, Wikidata, TheyWorkForYou, MySociety");
 
     // Add rectangles in the background to identify parliamentary terms
     add_election_rects(no_transition);
@@ -1016,7 +1016,7 @@ function second_slide() {
     chartTitle.transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 750).text("MPs in the House of Commons");
 
     // Change credits
-    credit_alink.attr("xlink:href", "https://en.wikipedia.org/wiki/Party_divisions_of_United_States_Congresses").select("text").transition().text("Data: Wikipedia");
+    credit_alink.attr("xlink:href", "http://researchbriefings.parliament.uk/ResearchBriefing/Summary/CBP-7529").select("text").transition().text("Data: House of Commons Library");
 
     slide2Group.append("text").attr("x", x(new Date(2017, 1, 1))).attr("y", y(0) - 10 * lineThickness).attr("class", "women-label").text("Women").style("opacity", 0).transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 500).style("opacity", 1);
 
