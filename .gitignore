@@ -2,10 +2,13 @@
 mp_speeches.h5
 raw.h5
 raw_speeches.h5
+raw_speeches_new.h5
 processed.h5
 processed_2.h5
 processed_speeches.h5
+processed_speeches_new.h5
 speeches.h5
+speeches_new.h5
 
 # mp photos also too big to upload
 mp_photos/

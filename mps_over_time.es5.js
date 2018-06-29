@@ -282,7 +282,7 @@ function initial_render() {
 
     x = d3.scaleUtc().domain([new Date(1915, 1, 1), new Date(2020, 1, 1)]).range([0, width]);
 
-    y = d3.scaleLinear().domain([0, 210]) // Almost 210 MPs by 2020
+    y = d3.scaleLinear().domain([0, 220]) //  210 MPs by 2020
     .range([height, 0]);
 
     svg.append("defs");
@@ -717,7 +717,7 @@ function to_first_slide(current_slide) {
     // Show canvas
     d3.select("#visible-canvas").style("opacity", 1).style("display", null);
     // Scale axes to fit all data
-    y.domain([0, 210]);
+    y.domain([0, 220]);
     gY.transition().duration(1000).call(yAxis.tickFormat(function (d) {
         return d;
     }));
@@ -944,7 +944,7 @@ function second_slide() {
     // DRAW LINE SHOWING TOTAL WOMEN MPS OVER TIME
     // ----------------------------------------------------------------------------
 
-    var y_canvas = d3.scaleLinear().domain([0, 210]) // Almost 210 MPs by 2020
+    var y_canvas = d3.scaleLinear().domain([0, 220]) // 220 MPs by 2020
     .range([height, 0]);
 
     var total_women_mps_line_canvas = d3.line().x(function (d) {

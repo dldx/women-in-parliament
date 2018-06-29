@@ -363,7 +363,7 @@ function initial_render() {
         .range([0, width])
 
     y = d3.scaleLinear()
-        .domain([0, 210]) // Almost 210 MPs by 2020
+        .domain([0, 220]) //  210 MPs by 2020
         .range([height, 0])
 
     svg.append("defs")
@@ -960,7 +960,7 @@ function to_first_slide(current_slide) {
         .style("opacity", 1)
         .style("display", null)
     // Scale axes to fit all data
-    y.domain([0, 210])
+    y.domain([0, 220])
     gY.transition()
         .duration(1000)
         .call(yAxis.tickFormat(d => d))
@@ -1271,7 +1271,7 @@ function second_slide(no_transition = false) {
     // ----------------------------------------------------------------------------
 
     let y_canvas = d3.scaleLinear()
-        .domain([0, 210]) // Almost 210 MPs by 2020
+        .domain([0, 220]) // 220 MPs by 2020
         .range([height, 0])
 
     let total_women_mps_line_canvas = d3.line()
