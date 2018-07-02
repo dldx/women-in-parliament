@@ -187,7 +187,7 @@ body {
     font-weight: lighter;
     line-height: 1.2;
     @include phone {
-      max-width: 30rem;
+      max-width: 50rem;
       font-size: 2.5rem;
     }
   }
@@ -198,10 +198,9 @@ body {
     text-align: center;
     font-size: 1.25rem;
     font-weight: lighter;
-    max-width: 50rem;
+    max-width: 80%;
     @include phone {
-      max-width: 30rem;
-      font-size: 1.2rem;
+      font-size: 1rem;
     }
   }
 
