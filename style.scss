@@ -74,6 +74,13 @@ $desktop-width: 1024px;
   font-style: normal;
   font-stretch: normal;
 }
+@font-face {
+  font-family: 'Canela Web';
+  src: url("https://pudding.cool/assets/fonts/canela/Canela-Italic-Web.woff2") format('woff2'), url("https://pudding.cool/assets/fonts/canela/Canela-Italic-Web.woff") format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-stretch: normal;
+}
 /* Publico Text */
 @font-face {
   font-family: 'Publico Text Web';
