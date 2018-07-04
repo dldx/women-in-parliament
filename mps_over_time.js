@@ -182,6 +182,7 @@ var mps_over_time_data,
     topic_medians_data,
     baked_positions_data,
     parliamentary_candidates_data,
+    photo_attribution_data,
     nodes_male,
     nodes_female
 
@@ -847,6 +848,7 @@ function show_mp_tooltip(nodeData, mousePos) {
                 `
         }
     }
+
     tooltip_innerHTML += `</div>
             <div class="body-facts">
             <div class="mp-partyname">${party_abbreviations[nodeData.party] || nodeData.party}</div>
@@ -856,8 +858,20 @@ function show_mp_tooltip(nodeData, mousePos) {
                     </div>
                     </div>
                     <div class="mp-party" style="opacity: ${partyLogo ? 0: 1}">${nodeData.party}</div>
-                    ${partyLogo ? `<img class="mp-party-logo" alt="${nodeData.party} logo" style="opacity: ${partyLogo ? 1: 0}" src="./party_logos/${nodeData.party}.svg"/>` : ""}
-                    `
+                    ${partyLogo ? `<img class="mp-party-logo" alt="${nodeData.party} logo" style="opacity: ${partyLogo ? 1: 0}" src="./party_logos/${nodeData.party}.svg"/>` : ""}`
+
+    let photo_credits = photo_attribution_data.filter(d => d.id == nodeData.id)
+
+    if (photo_credits.length > 0) {
+        if (photo_credits[0].photo_url == "p") {
+            var photo_source = " (Parliament)"
+        } else if (photo_credits[0].photo_url == "w") {
+            photo_source = " (Wikipedia)"
+        } else {
+            photo_source = ""
+        }
+        tooltip_innerHTML += `<div class="photo-attribution">Photo: ${photo_credits[0].attribution_text + photo_source}</div>`
+    }
 
     tooltip.innerHTML = tooltip_innerHTML
 
@@ -4071,7 +4085,8 @@ function download_data() {
                     Other: +d.Other_women
                 }
             })
-        .await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates) {
+        .defer(d3.csv, "photo_attribution.csv")
+        .await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates, photo_attribution) {
             // Group stats by country
             women_in_govt_data = d3.nest()
                 .key(d => d.country)
@@ -4117,6 +4132,7 @@ function download_data() {
                 .entries(baked_positions_data)
 
             parliamentary_candidates_data = parliamentary_candidates
+            photo_attribution_data = photo_attribution
         })
 
 }

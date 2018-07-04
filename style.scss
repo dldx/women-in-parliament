@@ -962,9 +962,15 @@ $tip-padding: .5;
     filter: blur(4px);
     position: absolute;
   }
-  // .body-container {
-  //   display: flex;
-  // }
+
+  .photo-attribution {
+    font-size: 0.6rem;
+    opacity: 0.8;
+    margin-left: 0.5rem;
+    a {
+    text-decoration: none !important;
+  }
+  }
   .body {
     padding: 0 .5em !important;
     display: grid;
@@ -980,6 +986,7 @@ $tip-padding: .5;
     z-index: 5;
     grid-area: facts;
     align-self: center;
+    transform: translateY(-0.25rem);
   }
 }
 

@@ -123,7 +123,7 @@ var ratio, clippedArea, electionRects, zoom, wrapper, transform, zoomedArea, poi
 // slide5Group,
 slide6Group, max_mps_line, max_mps_path, max_mps_area, max_mps_path_area, half_max_mps_line, half_max_mps_path, total_women_mps_line, total_women_mps_path, total_women_mps_area, total_women_mps_path_area, half_max_mps_line_smooth, text_path_50_50, women_in_govt_paths, mask, instance, x, y, chartTitle, credit_alink, xAxis, gX, xLabel, yAxis, gY, yLabel, tooltip, lineThickness, circleRadius, selected_topic, circle_male, circle_female, slide5_xScale, slide5_yScale, temp_nodes, mp_filter, isMobile, all_mps_draw_timer, annotate_timer, tooltip_timer;
 
-var mps_over_time_data, number_women_over_time_data, total_mps_over_time_data, women_in_govt_data, mp_base64_data, topic_medians_data, baked_positions_data, parliamentary_candidates_data, nodes_male, nodes_female;
+var mps_over_time_data, number_women_over_time_data, total_mps_over_time_data, women_in_govt_data, mp_base64_data, topic_medians_data, baked_positions_data, parliamentary_candidates_data, photo_attribution_data, nodes_male, nodes_female;
 
 // If a political party has a colour defined,
 // then it also has an SVG logo that we can use
@@ -637,7 +637,23 @@ function show_mp_tooltip(nodeData, mousePos) {
             tooltip_innerHTML += "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64, " + mp_base64_data[nodeData.id] + "\"/>\n                <img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: " + (typeof nodeData.loaded == "undefined" ? 0 : nodeData.loaded) + (nodeData.loaded = 1) + ";\" onload=\"this.style.opacity = 1;\" />\n                ";
         }
     }
-    tooltip_innerHTML += "</div>\n            <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-term\">" + d3.timeFormat("%Y")(nodeData.term_start) + " &rarr;                     " + d3.timeFormat("%Y")(nodeData.term_end) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n                    ";
+
+    tooltip_innerHTML += "</div>\n            <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-term\">" + d3.timeFormat("%Y")(nodeData.term_start) + " &rarr;                     " + d3.timeFormat("%Y")(nodeData.term_end) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "");
+
+    var photo_credits = photo_attribution_data.filter(function (d) {
+        return d.id == nodeData.id;
+    });
+
+    if (photo_credits.length > 0) {
+        if (photo_credits[0].photo_url == "p") {
+            var photo_source = " (Parliament)";
+        } else if (photo_credits[0].photo_url == "w") {
+            photo_source = " (Wikipedia)";
+        } else {
+            photo_source = "";
+        }
+        tooltip_innerHTML += "<div class=\"photo-attribution\">Photo: " + (photo_credits[0].attribution_text + photo_source) + "</div>";
+    }
 
     tooltip.innerHTML = tooltip_innerHTML;
 
@@ -3021,7 +3037,7 @@ function download_data() {
             Liberal_total: +d.Lib_total,
             Other: +d.Other_women
         };
-    }).await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates) {
+    }).defer(d3.csv, "photo_attribution.csv").await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates, photo_attribution) {
         // Group stats by country
         women_in_govt_data = d3.nest().key(function (d) {
             return d.country;
@@ -3063,6 +3079,7 @@ function download_data() {
         }).entries(baked_positions_data);
 
         parliamentary_candidates_data = parliamentary_candidates;
+        photo_attribution_data = photo_attribution;
     });
 }
 
