@@ -1150,6 +1150,7 @@ $tip-padding: .5;
   appearance: none;
   padding-right: 2.5em;
   @include phone {
+    max-width: 70%;
     padding-right: 1.5em;
   }
 }
@@ -1266,7 +1267,7 @@ input:checked + .slider:before {
 }
 
 .half-max-mps-path {
-  stroke-dasharray: 1,10;
+  stroke-dasharray: 1,13;
   stroke: $female;
   stroke-width: 2.5;
 }
