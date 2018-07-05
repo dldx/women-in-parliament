@@ -328,7 +328,7 @@ function initial_render() {
     gY = wrapper.append("g").attr("class", "y-axis").call(yAxis).attr("transform", "translate(" + width + ", 0)");
 
     // Add chart title
-    chartTitle = svg.append("text").attr("x", width / 2 + margin.left).attr("y", margin.top / 2).style("text-anchor", "middle").attr("class", "chart-title").text("");
+    chartTitle = svg.append("text").attr("x", (isMobile ? 0 : width / 2) + margin.left).attr("y", margin.top / 2).style("text-anchor", isMobile ? "start" : "middle").attr("class", "chart-title").text("");
 
     // Add axes labels
     credit_alink = svg.append("a").attr("target", "_blank");
@@ -337,7 +337,7 @@ function initial_render() {
     // Add axes labels
     xLabel = svg.append("text").attr("transform", "translate(" + (margin.left + margin.right + width) / 2 + " ," + (height + margin.top + margin.bottom) + ")").attr("class", "x-label").style("text-anchor", "middle").text("");
 
-    yLabel = svg.append("text").attr("transform", "rotate(-90)").attr("y", width + margin.left + margin.right * 3 / 4).attr("x", 0 - (height + margin.top + margin.bottom) / 2).attr("class", "y-label").attr("dominant-baseline", "baseline").text("Number of Women MPs");
+    yLabel = svg.append("text").attr("transform", "rotate(-90)").attr("y", width + margin.left + margin.right * 3 / 4).attr("x", 0 - (height + margin.top + margin.bottom) / 2).attr("class", "y-label").attr("dominant-baseline", "hanging").text("Number of Women MPs");
 
     // Add zoom capabilities for the points
     zoom = d3.zoom().scaleExtent([0.95, 40]).on("zoom", zoomed);
@@ -464,7 +464,7 @@ function first_slide() {
     chartTitle.transition().text("Women MPs in the House of Commons");
 
     // Change credits
-    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library, Wikidata, TheyWorkForYou, MySociety");
+    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library, MySociety");
 
     // Add rectangles in the background to identify parliamentary terms
     add_election_rects(no_transition);
@@ -1034,7 +1034,7 @@ function second_slide() {
     // Change credits
     credit_alink.attr("xlink:href", "http://researchbriefings.parliament.uk/ResearchBriefing/Summary/CBP-7529").select("text").transition().text("Data: House of Commons Library");
 
-    slide2Group.append("text").attr("x", x(new Date(2017, 1, 1))).attr("y", y(0) - 10 * lineThickness).attr("class", "women-label").text("Women").style("opacity", 0).transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 500).style("opacity", 1);
+    slide2Group.append("text").attr("x", x(isMobile ? new Date(2019, 6, 1) : new Date(2017, 1, 1))).attr("y", y(0) - 10 * lineThickness).attr("class", "women-label").text("Women").style("opacity", 0).transition().delay(no_transition ? 0 : 4000).duration(no_transition ? 0 : 500).style("opacity", 1);
 
     // Do the actual axis rescale now
     gY.transition().delay(no_transition ? 0 : 5500).duration(no_transition ? 1000 : 750).call(yAxis);
@@ -1071,7 +1071,7 @@ function second_slide() {
 
     svg.transition().delay(no_transition ? 0 : 7000).on("end", function () {
         // Add text labels for areas
-        slide2Group.append("text").attr("x", x(new Date(2017, 1, 1))).attr("y", y(500)).attr("class", "men-label").text("Men").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
+        slide2Group.append("text").attr("x", x(isMobile ? new Date(2019, 6, 1) : new Date(2017, 1, 1))).attr("y", y(500)).attr("class", "men-label").text("Men").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
 
         // Add text label for party
         slide2Group.append("text").attr("x", x(new Date(1920, 1, 1))).attr("y", y(700)).attr("class", "party-label").attr("alignment-baseline", "hanging").text("");
@@ -1684,7 +1684,14 @@ function fifth_slide() {
         });
 
         // Add a dropdown to select different topics
-        d3.select("body").append("span").attr("class", "slide5-dropdown").append("select").attr("id", "topic-dropdown").attr("class", "slide5-dropdown__select").on("change", update_fifth_slide).selectAll(".topic").data(baked_positions_data.map(function (topic) {
+        d3.select("body").append("span").attr("class", "slide5-dropdown");
+
+        d3.select(".slide5-dropdown").append("button").text("⟵").on("click", function () {
+            new_slide = 5;
+            update_state();
+        });
+
+        d3.select(".slide5-dropdown").append("select").attr("id", "topic-dropdown").attr("class", "slide5-dropdown__select").on("change", update_fifth_slide).selectAll(".topic").data(baked_positions_data.map(function (topic) {
             return topic.key;
         }).reverse()).enter().append("option").attr("selected", function (d) {
             return d == selected_topic ? "selected" : null;
@@ -2161,6 +2168,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
 
     // Remove existing annotations
     mouseover_svg.selectAll(".female-label, .male-label").remove();
+    annotate_timer.stop();
 
     if (drawMedian) {
         // Label female median dot
@@ -2178,10 +2186,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             dy: slide5_yScale(topic_medians_data[selected_topic]["female"] > topic_medians_data[selected_topic]["male"] ? 0.15 : 0.05) - slide5_yScale(topic_medians_data[selected_topic]["female"])
         }]);
 
-        d3.timeout(function () {
-            mouseover_svg.select(".timeline-wrapper").append("g").attr("class", "female-label").call(make_female_label);
-        }, 1500);
-        // Label female median dot
+        // Label male median dot
         var make_male_label = d3.annotation().type(d3.annotationCallout).annotations([{
             note: {
                 title: "Median man: " + (topic_medians_data[selected_topic]["male"] * 100).toFixed(1) + "%"
@@ -2196,7 +2201,8 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             dy: slide5_yScale(topic_medians_data[selected_topic]["male"] > topic_medians_data[selected_topic]["female"] ? 0.15 : 0.05) - slide5_yScale(topic_medians_data[selected_topic]["male"])
         }]);
 
-        d3.timeout(function () {
+        annotate_timer = d3.timeout(function () {
+            mouseover_svg.select(".timeline-wrapper").append("g").attr("class", "female-label").call(make_female_label);
             mouseover_svg.select(".timeline-wrapper").append("g").attr("class", "male-label").call(make_male_label);
         }, 1500);
     }
@@ -2253,8 +2259,23 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
         d3.select("#tooltip").style("opacity", 1).classed("slide5-tooltip", true).style("transform", "translate(" + Math.max(Math.min(mousePos[0] - tooltip.offsetWidth, width - tooltip.offsetWidth - margin.right), 0 + margin.left) + "px," + Math.max(Math.min(mousePos[1] - tooltip.offsetHeight - 20, height + tooltip.offsetHeight - 20), margin.top) + "px)").style("pointer-events", "none");
 
         var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1;
+
+        var photo_credits = photo_attribution_data.filter(function (d) {
+            return d.id == nodeData.id;
+        });
+
+        if (photo_credits.length > 0) {
+            if (photo_credits[0].photo_url == "p") {
+                var photo_source = " (Parliament)";
+            } else if (photo_credits[0].photo_url == "w") {
+                photo_source = " (Wikipedia)";
+            } else {
+                photo_source = "";
+            }
+        }
         // Show relevant tooltip info
-        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"border-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n</div>";
+        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"border-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n                    <div class=\"photo-attribution\">" + (photo_credits.length > 0 ? "Photo: " + photo_credits[0].attribution_text + photo_source : "") + "</div>\n</div>";
+
         // Also select the mouseover circle and move it to the right location
         mouseover_svg.select("circle").datum(nodeData).attr("cx", function (d) {
             return d.x;
@@ -2731,9 +2752,9 @@ function sixth_slide() {
             slide6Group.style("opacity", 1);
         });
 
-        wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + margin.bottom).text("Discussed more by women ⟶").style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
+        wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text("Discussed more by women" + (isMobile ? "→" : " ⟶")).style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
 
-        wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + margin.bottom).text("⟵ Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
+        wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text((isMobile ? "←" : "⟵ ") + "Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
     }
 
     label_pos = sorted_topics.map(function (d) {
@@ -2874,9 +2895,9 @@ function seventh_slide() {
 
     xLabel.text("");
     yLabel.text("Number of Women Parliamentary Candidates");
-    chartTitle.text("Women Parliamentary Candidates over Time");
+    chartTitle.text("Women Parliamentary Candidates");
     // Change credits
-    credit_alink.attr("xlink:href", null).select("text").transition().text("Data: House of Commons Library");
+    credit_alink.attr("xlink:href", null).select("text").transition().text("");
 
     if (no_transition) {
         var slide7Group = d3.select("#slide7-group").style("opacity", 1).style("pointer-events", "unset");
@@ -3917,7 +3938,7 @@ function draw_graph() {
     margin = {
         top: 50,
         left: 25,
-        bottom: 30,
+        bottom: 35,
         right: timeline.clientWidth < 500 ? 50 : 70
     };
     var new_width = timeline.clientWidth - margin.left - margin.right,

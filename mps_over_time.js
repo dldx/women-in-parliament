@@ -453,9 +453,9 @@ function initial_render() {
 
     // Add chart title
     chartTitle = svg.append("text")
-        .attr("x", (width / 2) + margin.left)
+        .attr("x", (isMobile ? 0 : (width/2)) + margin.left)
         .attr("y", margin.top / 2)
-        .style("text-anchor", "middle")
+        .style("text-anchor", isMobile ? "start" : "middle")
         .attr("class", "chart-title")
         .text("")
 
@@ -484,7 +484,7 @@ function initial_render() {
         .attr("y", width + margin.left + margin.right*3/4)
         .attr("x", 0 - (height + margin.top + margin.bottom) / 2)
         .attr("class", "y-label")
-        .attr("dominant-baseline", "baseline")
+        .attr("dominant-baseline", "hanging")
         .text("Number of Women MPs")
 
     // Add zoom capabilities for the points
@@ -638,7 +638,7 @@ function first_slide(no_transition = false) {
         .attr("xlink:href", null)
         .select("text")
         .transition()
-        .text("Data: House of Commons Library, Wikidata, TheyWorkForYou, MySociety")
+        .text("Data: House of Commons Library, MySociety")
 
     // Add rectangles in the background to identify parliamentary terms
     add_election_rects(no_transition)
@@ -1388,7 +1388,7 @@ function second_slide(no_transition = false) {
         .text("Data: House of Commons Library")
 
     slide2Group.append("text")
-        .attr("x", x(new Date(2017, 1, 1)))
+        .attr("x", x(isMobile ? new Date(2019, 6, 1) : new Date(2017, 1, 1)))
         .attr("y", y(0) - 10 * lineThickness)
         .attr("class", "women-label")
         .text("Women")
@@ -1468,7 +1468,7 @@ function second_slide(no_transition = false) {
         .on("end", () => {
             // Add text labels for areas
             slide2Group.append("text")
-                .attr("x", x(new Date(2017, 1, 1)))
+                .attr("x", x(isMobile ? new Date(2019, 6, 1) : new Date(2017, 1, 1)))
                 .attr("y", y(500))
                 .attr("class", "men-label")
                 .text("Men")
@@ -2322,6 +2322,16 @@ function fifth_slide(no_transition = false) {
         d3.select("body")
             .append("span")
             .attr("class", "slide5-dropdown")
+
+        d3.select(".slide5-dropdown")
+            .append("button")
+            .text("⟵")
+            .on("click", () => {
+                new_slide = 5
+                update_state()
+            })
+
+        d3.select(".slide5-dropdown")
             .append("select")
             .attr("id", "topic-dropdown")
             .attr("class", "slide5-dropdown__select")
@@ -2334,6 +2344,7 @@ function fifth_slide(no_transition = false) {
             .attr("selected", d => d == selected_topic ? "selected" : null)
             .attr("value", d => d)
             .text(d => d.toUpperCase())
+
     }
 
     // Add search box for MPs
@@ -2894,6 +2905,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
 
     // Remove existing annotations
     mouseover_svg.selectAll(".female-label, .male-label").remove()
+    annotate_timer.stop()
 
     if (drawMedian) {
     // Label female median dot
@@ -2913,14 +2925,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
                 dy: slide5_yScale(topic_medians_data[selected_topic]["female"] > topic_medians_data[selected_topic]["male"] ? 0.15 : 0.05) - slide5_yScale(topic_medians_data[selected_topic]["female"])
             }])
 
-        d3.timeout(() => {
-            mouseover_svg
-                .select(".timeline-wrapper")
-                .append("g")
-                .attr("class", "female-label")
-                .call(make_female_label)
-        }, 1500)
-        // Label female median dot
+        // Label male median dot
         var make_male_label = d3.annotation()
             .type(d3.annotationCallout)
             .annotations([{
@@ -2937,7 +2942,12 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
                 dy: slide5_yScale(topic_medians_data[selected_topic]["male"] > topic_medians_data[selected_topic]["female"] ? 0.15 : 0.05) - slide5_yScale(topic_medians_data[selected_topic]["male"])
             }])
 
-        d3.timeout(() => {
+        annotate_timer = d3.timeout(() => {
+            mouseover_svg
+                .select(".timeline-wrapper")
+                .append("g")
+                .attr("class", "female-label")
+                .call(make_female_label)
             mouseover_svg
                 .select(".timeline-wrapper")
                 .append("g")
@@ -3015,6 +3025,18 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             .style("pointer-events", "none")
 
         var partyLogo = partyHasLogo.indexOf(nodeData.party) != -1
+
+        let photo_credits = photo_attribution_data.filter(d => d.id == nodeData.id)
+
+        if (photo_credits.length > 0) {
+            if (photo_credits[0].photo_url == "p") {
+                var photo_source = " (Parliament)"
+            } else if (photo_credits[0].photo_url == "w") {
+                photo_source = " (Wikipedia)"
+            } else {
+                photo_source = ""
+            }
+        }
         // Show relevant tooltip info
         tooltip.innerHTML = `
                             <div class="slide5-tooltip">
@@ -3032,7 +3054,9 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
                     </div>
                     <div class="mp-party" style="opacity: ${partyLogo ? 0: 1}">${nodeData.party}</div>
                     ${partyLogo ? `<img class="mp-party-logo" alt="${nodeData.party} logo" style="opacity: ${partyLogo ? 1: 0}" src="./party_logos/${nodeData.party}.svg"/>` : ""}
+                    <div class="photo-attribution">${photo_credits.length > 0 ? ("Photo: " + photo_credits[0].attribution_text + photo_source) : ""}</div>
 </div>`
+
         // Also select the mouseover circle and move it to the right location
         mouseover_svg
             .select("circle")
@@ -3693,8 +3717,8 @@ function sixth_slide(no_transition = false) {
         wrapper.append("text")
             .attr("class", "x-custom-label")
             .attr("x", width)
-            .attr("y", height + margin.bottom)
-            .text("Discussed more by women ⟶")
+            .attr("y", height + (isMobile ? margin.bottom*2/3 : margin.bottom))
+            .text("Discussed more by women" + (isMobile ? "→" : " ⟶"))
             .style("text-anchor", "end")
             .style("fill", colors["Female"])
             .style("alignment-baseline", "hanging")
@@ -3702,8 +3726,8 @@ function sixth_slide(no_transition = false) {
         wrapper.append("text")
             .attr("class", "x-custom-label")
             .attr("x", 0)
-            .attr("y", height + margin.bottom)
-            .text("⟵ Discussed more by men")
+            .attr("y", height + (isMobile ? margin.bottom*2/3 : margin.bottom))
+            .text((isMobile ? "←" : "⟵ ") + "Discussed more by men")
             .style("text-anchor", "start")
             .style("fill", colors["Male"])
             .style("alignment-baseline", "hanging")
@@ -3886,13 +3910,13 @@ function seventh_slide(no_transition = false) {
 
     xLabel.text("")
     yLabel.text("Number of Women Parliamentary Candidates")
-    chartTitle.text("Women Parliamentary Candidates over Time")
+    chartTitle.text("Women Parliamentary Candidates")
     // Change credits
     credit_alink
         .attr("xlink:href", null)
         .select("text")
         .transition()
-        .text("Data: House of Commons Library")
+        .text("")
 
     if(no_transition) {
         var slide7Group = d3.select("#slide7-group").style("opacity", 1)
@@ -5140,7 +5164,7 @@ function draw_graph() {
     margin = {
         top: 50,
         left: 25,
-        bottom: 30,
+        bottom: 35,
         right: (timeline.clientWidth < 500 ? 50 : 70)
     }
     var new_width = timeline.clientWidth - margin.left - margin.right,
