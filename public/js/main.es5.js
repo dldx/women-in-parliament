@@ -630,15 +630,15 @@ function show_mp_tooltip(nodeData, mousePos) {
     var tooltip_innerHTML = "\n                    <h1 style=\"border-color: " + colorParty(nodeData.party) + ";\">" + nodeData.name + "</h1>\n                    <div class=\"body\">\n                <div class=\"mp-image-parent\">";
 
     if (typeof mp_base64_data == "undefined") {
-        tooltip_innerHTML += "<img class=\"mp-image-blurred\" style=\"opacity: 0;\"/>\n                <img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" />\n                ";
+        tooltip_innerHTML += "<img class=\"mp-image-blurred\" style=\"opacity: 0;\"/>\n                <img class=\"mp-image\" src=\"./assets/mp-images/mp-" + nodeData.id + ".jpg\" />\n                ";
     } else {
         // If mp has a photo
         if (typeof mp_base64_data[nodeData.id] !== "undefined") {
-            tooltip_innerHTML += "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64, " + mp_base64_data[nodeData.id] + "\"/>\n                <img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: " + (typeof nodeData.loaded == "undefined" ? 0 : nodeData.loaded) + (nodeData.loaded = 1) + ";\" onload=\"this.style.opacity = 1;\" />\n                ";
+            tooltip_innerHTML += "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64, " + mp_base64_data[nodeData.id] + "\"/>\n                <img class=\"mp-image\" src=\"./assets/mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: " + (typeof nodeData.loaded == "undefined" ? 0 : nodeData.loaded) + (nodeData.loaded = 1) + ";\" onload=\"this.style.opacity = 1;\" />\n                ";
         }
     }
 
-    tooltip_innerHTML += "</div>\n            <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-term\">" + d3.timeFormat("%Y")(nodeData.term_start) + " &rarr;                     " + d3.timeFormat("%Y")(nodeData.term_end) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "");
+    tooltip_innerHTML += "</div>\n            <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-term\">" + d3.timeFormat("%Y")(nodeData.term_start) + " &rarr;                     " + d3.timeFormat("%Y")(nodeData.term_end) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./assets/party_logos/" + nodeData.party + ".svg\"/>" : "");
 
     var photo_credits = photo_attribution_data.filter(function (d) {
         return d.id == nodeData.id;
@@ -2274,7 +2274,7 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
             }
         }
         // Show relevant tooltip info
-        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"border-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n                    <div class=\"photo-attribution\">" + (photo_credits.length > 0 ? "Photo: " + photo_credits[0].attribution_text + photo_source : "") + "</div>\n</div>";
+        tooltip.innerHTML = "\n                            <div class=\"slide5-tooltip\">\n                    <h1 style=\"border-color: " + colorParty(nodeData.party) + ";\">" + nodeData.full_name + "</h1>\n                    <div class=\"body\">\n                    <div class=\"mp-image-parent\">\n                    " + (typeof mp_base64_data[nodeData.id] === "undefined" ? "" : "<img class=\"mp-image-blurred\" src=\"data:image/jpeg;base64," + mp_base64_data[nodeData.id] + "\" />" + "<img class=\"mp-image\" src=\"./assets/mp-images/mp-" + nodeData.id + ".jpg\" style=\"opacity: ${typeof nodeData.loaded == 'undefined' ? 0 : nodeData.loaded;d.loaded = 1;};\" onload=\"this.style.opacity = 1;\" />") + "\n                    </div>\n                    <div class=\"body-facts\">\n            <div class=\"mp-partyname\">" + (party_abbreviations[nodeData.party] || nodeData.party) + "</div>\n                    <div class=\"mp-constituency\">" + nodeData.constituency + "</div>\n                    <p>" + (slide5_yScale.invert(nodeData.y) * 100).toFixed(1) + "%</em> of " + (nodeData.gender == "Female" ? "her" : "his") + " time spent on <em>" + selected_topic + "</em></p>\n                    </div>\n                    </div>\n                    <div class=\"mp-party\" style=\"opacity: " + (partyLogo ? 0 : 1) + "\">" + nodeData.party + "</div>\n                    " + (partyLogo ? "<img class=\"mp-party-logo\" alt=\"" + nodeData.party + " logo\" style=\"opacity: " + (partyLogo ? 1 : 0) + "\" src=\"./assets/party_logos/" + nodeData.party + ".svg\"/>" : "") + "\n                    <div class=\"photo-attribution\">" + (photo_credits.length > 0 ? "Photo: " + photo_credits[0].attribution_text + photo_source : "") + "</div>\n</div>";
 
         // Also select the mouseover circle and move it to the right location
         mouseover_svg.select("circle").datum(nodeData).attr("cx", function (d) {
@@ -2968,7 +2968,7 @@ function seventh_slide() {
 // DOWNLOAD ALL THE MP DATA WE NEED TO DRAW THE GRAPHS
 // ----------------------------------------------------------------------------
 function download_data() {
-    d3.queue().defer(d3.csv, "women_mps.csv", function (d) {
+    d3.queue().defer(d3.csv, "data/women_mps.csv", function (d) {
         var parseDate = d3.timeParse("%Y-%m-%d");
         return {
             id: d.id,
@@ -2980,7 +2980,7 @@ function download_data() {
             clean_name: d.clean_name,
             stream: +d.stream
         };
-    }).defer(d3.csv, "number_women_over_time.csv", function (d) {
+    }).defer(d3.csv, "data/number_women_over_time.csv", function (d) {
         var parseDate = d3.timeParse("%Y-%m-%d");
         return {
             year: parseDate(d.Year),
@@ -2989,7 +2989,7 @@ function download_data() {
             labour_women_mps: +d.Lab,
             lib_snp_women_mps: +d.Lib_SNP
         };
-    }).defer(d3.csv, "total_mps_over_time.csv", function (d) {
+    }).defer(d3.csv, "data/total_mps_over_time.csv", function (d) {
         var parseDate = d3.timeParse("%Y-%m-%d");
         return {
             year: parseDate(d.Year),
@@ -3021,7 +3021,7 @@ function download_data() {
 
     // These files can download later because we don't need to wait for them
     // to load initial view
-    d3.queue().defer(d3.csv, "mp_base64.csv", function (d) {
+    d3.queue().defer(d3.csv, "data/mp_base64.csv", function (d) {
         return {
             id: d.id,
             base64: d.base64
@@ -3034,20 +3034,20 @@ function download_data() {
         }
     });
 
-    d3.queue().defer(d3.csv, "women_in_govt.csv", function (d) {
+    d3.queue().defer(d3.csv, "data/women_in_govt.csv", function (d) {
         var parseDate = d3.timeParse("%Y-%m-%d");
         return {
             year: parseDate(d.date),
             women_pct: +d.women_parliament,
             country: d.country
         };
-    }).defer(d3.csv, "baked_positions.csv").defer(d3.csv, "topic_medians.csv", function (d) {
+    }).defer(d3.csv, "data/baked_positions.csv").defer(d3.csv, "data/topic_medians.csv", function (d) {
         return {
             topic: d.topic,
             male: Math.pow(10, +d.male),
             female: Math.pow(10, +d.female)
         };
-    }).defer(d3.csv, "number_women_parliamentary_candidates_over_time.csv", function (d) {
+    }).defer(d3.csv, "data/number_women_parliamentary_candidates_over_time.csv", function (d) {
         return {
             year: d.Year,
             Labour: +d.Lab_women,
@@ -3058,7 +3058,7 @@ function download_data() {
             Liberal_total: +d.Lib_total,
             Other: +d.Other_women
         };
-    }).defer(d3.csv, "photo_attribution.csv").await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates, photo_attribution) {
+    }).defer(d3.csv, "data/photo_attribution.csv").await(function (error, women_in_govt, baked_mp_positions, topic_medians, parliamentary_candidates, photo_attribution) {
         // Group stats by country
         women_in_govt_data = d3.nest().key(function (d) {
             return d.country;
