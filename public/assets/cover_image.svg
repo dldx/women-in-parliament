@@ -6,11 +6,38 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="1200mm"
-   height="650mm"
-   viewBox="0 0 4251.9685 2303.1496"
+   height="630mm"
+   viewBox="0 0 4251.9685 2232.2835"
    id="svg2"
-   version="1.1">
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="cover_image.svg"
+   inkscape:export-filename="/home/durand/Stuff/Data_Science/women-in-parliament/public/assets/cover_.png"
+   inkscape:export-xdpi="25.4"
+   inkscape:export-ydpi="25.4">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="1"
+     inkscape:pageshadow="2"
+     inkscape:window-width="3200"
+     inkscape:window-height="1767"
+     id="namedview4197"
+     showgrid="false"
+     inkscape:zoom="0.45254834"
+     inkscape:cx="1868.1455"
+     inkscape:cy="980.41427"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2" />
   <defs
      id="defs4">
     <filter
@@ -31,20 +58,22 @@
   </metadata>
   <g
      id="layer1"
-     transform="translate(0,1250.7874)"
+     transform="matrix(0.99494618,0,0,0.99494618,6.7443363,1219.4198)"
      style="opacity:0.59500002">
     <image
+       sodipodi:absref="/home/durand/Stuff/Data_Science/women-in-parliament/public/assets/mps.png"
        xlink:href="mps.png"
-       width="4276"
-       height="2405"
-       preserveAspectRatio="none"
-       id="image4279"
+       y="-1301.7126"
        x="-12.015748"
-       y="-1301.7126" />
+       id="image4279"
+       preserveAspectRatio="none"
+       height="2405"
+       width="4276" />
   </g>
   <g
      id="layer2"
-     style="display:inline">
+     style="display:inline"
+     transform="translate(0,-30.866142)">
     <g
        id="g53709"
        transform="matrix(0.8637386,0,0,0.8637386,231.83596,339.58508)">
