@@ -521,6 +521,11 @@ tr td:hover {
   stroke-width: 2;
 }
 
+.annotation-group .slide6 {
+    font-size: 0.8rem !important;
+    font-weight: normal !important;
+  }
+
 .annotation text,
 .connector-dot {
   fill: map-get($colors, Hover);

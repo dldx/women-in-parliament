@@ -959,6 +959,7 @@ function to_first_slide(current_slide) {
 
         break
     }
+    svg.select(".slide6-annotation-group").style("opacity", 0)
     d3.selectAll(".election-rect")
         .on("mouseover", null)
         .on("mouseout", null)
@@ -1037,6 +1038,7 @@ function to_second_slide(current_slide) {
             break
 
         }
+        svg.select(".slide6-annotation-group").style("opacity", 0)
 
         // Scale axes to fit all data
         x.domain([new Date(1915, 1, 1), new Date(2020, 1, 1)])
@@ -1714,6 +1716,7 @@ function to_third_slide(current_slide) {
             break
         }
 
+        svg.select(".slide6-annotation-group").style("opacity", 0)
         d3.selectAll(".x-axis path").style("opacity", 1)
         third_slide(true)
     }
@@ -2223,6 +2226,9 @@ function to_fifth_slide(current_slide) {
         break
     }
 
+    d3.selectAll("#slide3-group")
+        .remove()
+    svg.select(".slide6-annotation-group").style("opacity", 0)
     // Fade tooltip
     d3.select("#tooltip")
         .transition(t0)
@@ -3289,6 +3295,8 @@ function to_sixth_slide(current_slide) {
         break
     }
 
+    d3.selectAll("#slide3-group")
+        .remove()
     // Fade tooltip
     d3.select("#tooltip")
         .transition(t0)
@@ -3682,6 +3690,29 @@ function sixth_slide(no_transition = false) {
             .style("alignment-baseline", "hanging")
             .style("opacity", 0)
 
+        svg.selectAll(".slide6-annotation-group").remove()
+        let makeAnnotations = d3.annotation()
+            .type(d3.annotationCallout)
+            .annotations([{
+                note: {
+                    title: "up to 460%"
+                },
+                connector: {
+                    end: "arrow",
+                    endScale: 0.5
+                },
+                //can use x, y directly instead of data
+                x: margin.left + width,
+                y: margin.top + 10,
+                dx: isMobile ? -20 : -50,
+                dy: isMobile ? -10 : -20
+            }])
+
+        svg
+            .append("g")
+            .attr("class", "slide6-annotation-group")
+            .call(makeAnnotations)
+            .style("opacity", 0)
 
         // Switch to relative change view
         var t3 = t2.transition()
@@ -3722,6 +3753,10 @@ function sixth_slide(no_transition = false) {
 
                         wrapper.selectAll(".x-custom-label").style("opacity", 1)
 
+                        svg.select(".slide6-annotation-group")
+                            .transition(t_)
+                            .delay(33*50)
+                            .style("opacity", 1)
                     })
 
             })
@@ -3745,6 +3780,8 @@ function sixth_slide(no_transition = false) {
             })
 
         wrapper.selectAll(".x-custom-label").style("opacity", 1)
+
+        svg.select(".slide6-annotation-group").style("opacity", 1)
     }
 
 
@@ -3848,7 +3885,9 @@ function to_seventh_slide(current_slide) {
             })
         break
     }
-
+    d3.selectAll("#slide3-group")
+        .remove()
+    svg.select(".slide6-annotation-group").transition().style("opacity", 0)
     mouseover_svg.selectAll(".female-label, .male-label").remove()
     d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis, .x-custom-label")
         .remove()
