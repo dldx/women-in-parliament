@@ -1068,28 +1068,40 @@ function second_slide() {
     // ╚═╝  ╚═╝ ╚═════╝   ╚═╝       ╚══════╝
     // DRAW LABELS FOR EACH AREA AND OVERLAY RECTS FOR EACH PARLIAMENT
     // ----------------------------------------------------------------------------
+    // Lets add all the elements hidden first to prevent the viz from breaking down
+
+    // Add text labels for areas
+    slide2Group.append("text").attr("x", x(new Date(2017, 1, 1))).attr("y", y(500 / 750 * y.domain()[1])).attr("class", "men-label").text("Men").style("opacity", 0);
+
+    // Add text label for party
+    slide2Group.append("text").attr("x", x(new Date(1920, 1, 1))).attr("y", y(700 / 750 * y.domain()[1])).attr("class", "party-label").attr("alignment-baseline", "hanging").text("");
+
+    // Add a smoothed 50% line to show halfway mark for gender and place text label on it
+    half_max_mps_line_smooth = d3.line().x(function (d) {
+        return x(d.year);
+    }).y(function (d) {
+        if (isMobile) {
+            return y(330);
+        } else {
+            return y(d.total_mps / 2 + 1);
+        }
+    }).curve(d3.curveBundle.beta(0.4));
+
+    // Add path for text to follow
+    text_path_50_50 = slide2Group.append("defs").append("path").attr("id", "half-max-textpath").datum(total_mps_over_time_data).attr("d", half_max_mps_line_smooth);
+
+    slide2Group.append("text").append("textPath").attr("startOffset", "50%").attr("xlink:href", "#half-max-textpath").attr("class", "i5050-label").text("50:50 gender representation").style("opacity", 0);
 
     svg.transition().delay(no_transition ? 0 : 7000).on("end", function () {
-        // Add text labels for areas
-        slide2Group.append("text").attr("x", x(isMobile ? new Date(2019, 6, 1) : new Date(2017, 1, 1))).attr("y", y(500)).attr("class", "men-label").text("Men").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
+        slide2Group.select(".men-label").attr("x", x(isMobile ? new Date(2019, 6, 1) : new Date(2017, 1, 1))).attr("y", y(500 / 750 * y.domain()[1])).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
 
-        // Add text label for party
-        slide2Group.append("text").attr("x", x(new Date(1920, 1, 1))).attr("y", y(700)).attr("class", "party-label").attr("alignment-baseline", "hanging").text("");
+        slide2Group.select(".party-label").attr("y", y(700 / 750 * y.domain()[1]));
 
-        // Add a smoothed 50% line to show halfway mark for gender and place text label on it
-        half_max_mps_line_smooth = d3.line().x(function (d) {
-            return x(d.year);
-        }).y(function (d) {
-            return y(d.total_mps / 2);
-        }).curve(d3.curveBundle.beta(0.4));
+        half_max_mps_line_smooth.y(function (d) {
+            return y(d.total_mps / 2 + 1);
+        });
 
-        // Add path for text to follow
-        text_path_50_50 = slide2Group.append("defs").append("path").attr("id", "half-max-textpath").datum(total_mps_over_time_data).attr("d", half_max_mps_line_smooth);
-
-        slide2Group.append("text").append("textPath")
-        // .attr("x", x(new Date(1970, 1, 1)))
-        // .attr("y", y(630/2))
-        .attr("startOffset", "50%").attr("xlink:href", "#half-max-textpath").attr("class", "i5050-label").text("50:50 gender representation").style("opacity", 0).transition().duration(no_transition ? 0 : 500).style("opacity", 1);
+        slide2Group.select(".i5050-label").transition().duration(no_transition ? 0 : 500).style("opacity", 1);
 
         // Use election rects to catch mouseovers and display information
         electionRects.on("mouseover", function (d, i) {
@@ -1322,7 +1334,7 @@ function third_slide() {
     half_max_mps_path.transition(t0).attr("d", half_max_mps_line);
 
     half_max_mps_line_smooth.y(function () {
-        return y(50);
+        return y(51);
     });
 
     text_path_50_50.transition(t0).attr("d", half_max_mps_line_smooth);
@@ -2168,7 +2180,11 @@ function update_fifth_slide(no_transition, default_selected_topic, from_scroll, 
 
     // Remove existing annotations
     mouseover_svg.selectAll(".female-label, .male-label").remove();
-    annotate_timer.stop();
+    try {
+        annotate_timer.stop();
+    } catch (e) {
+        //pass
+    }
 
     if (drawMedian) {
         // Label female median dot
@@ -2436,6 +2452,7 @@ function to_sixth_slide(current_slide) {
         case 6:
             d3.select("#slide7-group").style("opacity", 0).style("pointer-events", "none");
             d3.selectAll(".x-axis path").style("opacity", 1);
+            break;
     }
 
     // Fade tooltip
@@ -2445,6 +2462,12 @@ function to_sixth_slide(current_slide) {
 
     // Remove Election rectangles
     electionRects.transition(t0).style("opacity", 0).remove();
+
+    if (typeof slide6Group == "undefined") {
+        lastTransitioned = 4;
+        // remove seventh slide
+        d3.selectAll("#slide7-group").remove();
+    }
 
     if (lastTransitioned < 5) {
         // If first time transitioning
@@ -2695,6 +2718,12 @@ function sixth_slide() {
             update_state();
         });
 
+        // Add x axis labels but keep them hidden for now
+        wrapper.selectAll(".x-custom-label").remove();
+        wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text("Discussed more by women" + (isMobile ? "→" : " ⟶")).style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging").style("opacity", 0);
+
+        wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text((isMobile ? "←" : "⟵ ") + "Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging").style("opacity", 0);
+
         // Switch to relative change view
         var t3 = t2.transition().delay(1000).on("end", function () {
             x.domain([-3, 3]);
@@ -2726,10 +2755,7 @@ function sixth_slide() {
 
                 xLabel.text("Relative gender bias");
 
-                wrapper.selectAll(".x-custom-label").remove();
-                wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text("Discussed more by women" + (isMobile ? "→" : " ⟶")).style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
-
-                wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text((isMobile ? "←" : "⟵ ") + "Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
+                wrapper.selectAll(".x-custom-label").style("opacity", 1);
             });
         });
         var t4 = t3.transition();
@@ -2752,9 +2778,7 @@ function sixth_slide() {
             slide6Group.style("opacity", 1);
         });
 
-        wrapper.append("text").attr("class", "x-custom-label").attr("x", width).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text("Discussed more by women" + (isMobile ? "→" : " ⟶")).style("text-anchor", "end").style("fill", colors["Female"]).style("alignment-baseline", "hanging");
-
-        wrapper.append("text").attr("class", "x-custom-label").attr("x", 0).attr("y", height + (isMobile ? margin.bottom * 2 / 3 : margin.bottom)).text((isMobile ? "←" : "⟵ ") + "Discussed more by men").style("text-anchor", "start").style("fill", colors["Male"]).style("alignment-baseline", "hanging");
+        wrapper.selectAll(".x-custom-label").style("opacity", 1);
     }
 
     label_pos = sorted_topics.map(function (d) {
@@ -2829,8 +2853,11 @@ function to_seventh_slide(current_slide) {
             d3.selectAll("#slide6-group, .x-custom-label").style("opacity", 0).style("pointer-events", "none").on("end", function () {
                 d3.selectAll(".x-custom-label").remove();
             });
-
+            break;
     }
+
+    mouseover_svg.selectAll(".female-label, .male-label").remove();
+    d3.selectAll(".slide5-dropdown, .slide5-search, .x-custom-axis, .x-custom-label").remove();
 
     // Fade tooltip
     d3.select("#tooltip").transition(t0).style("opacity", 0).on("end", function () {
@@ -3384,13 +3411,21 @@ function handleStepEnter(response) {
                         document.getElementById("zoom-checkbox").click();
                         // If we have to zoom out first, wait a bit before executing next bit
                         d3.timeout(function () {
-                            all_mps_draw_timer.stop();
+                            try {
+                                all_mps_draw_timer.stop();
+                            } catch (e) {
+                                //pass
+                            }
                             mpZoom("constancemarkievicz", "mid", 10, 0, width / 4);
                         }, 1000);
                         var zooming = true;
                     } else {
                         // First step: zoom into first mp
-                        all_mps_draw_timer.stop();
+                        try {
+                            all_mps_draw_timer.stop();
+                        } catch (e) {
+                            //pass
+                        }
                         mpZoom("constancemarkievicz", "mid", 10, 0, width / 4);
                     }
                     // Annotate Constance
@@ -3416,7 +3451,11 @@ function handleStepEnter(response) {
                 case 2:
                     // Second step: first mp to take seat
                     mpZoom("nancyastor");
-                    annotate_timer.stop();
+                    try {
+                        annotate_timer.stop();
+                    } catch (e) {}
+                    //pass
+
                     // Annotate Patsy
                     annotate_timer = d3.timeout(function () {
                         var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
@@ -3439,7 +3478,11 @@ function handleStepEnter(response) {
                 case 4:
                     // Fourth step: first prime minister
                     mpZoom("margaretthatcher");
-                    annotate_timer.stop();
+                    try {
+                        annotate_timer.stop();
+                    } catch (e) {
+                        //pass
+                    }
                     annotate_timer = d3.timeout(function () {
                         var line_pos = mouseover_svg.select("line").node().getBoundingClientRect();
 
@@ -3460,7 +3503,11 @@ function handleStepEnter(response) {
                     break;
 
                 case 5:
-                    annotate_timer.stop();
+                    try {
+                        annotate_timer.stop();
+                    } catch (e) {
+                        //pass
+                    }
                     canvas.style("pointer-events", "all");
                     d3.select(".switch").style("opacity", 1).style("display", "inline-block");
 
@@ -3626,7 +3673,11 @@ function handleStepEnter(response) {
                         half_max_mps_path.transition().attr("d", half_max_mps_line);
 
                         half_max_mps_line_smooth.y(function (d) {
-                            return y(d.total_mps / 2);
+                            if (isMobile) {
+                                return y(330);
+                            } else {
+                                return y(d.total_mps / 2 + 1);
+                            }
                         });
                         text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
@@ -3637,9 +3688,9 @@ function handleStepEnter(response) {
                         total_women_mps_area.y1(function (d) {
                             return y(d.total_women_mps);
                         });
-                        total_women_mps_path_area.transition().attr("d", total_women_mps_area);
+                        total_women_mps_path_area.transition().attr("d", total_women_mps_area).style("opacity", 1);
 
-                        d3.select(".women-label").style("fill", colors["Male"]);
+                        d3.select(".women-label").style("fill", colors["Male"]).style("opacity", 1);
                     }
 
                     break;
@@ -3649,7 +3700,17 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text("MPs in the Labour Party");
 
-                    slide2Group.select(".party-label").transition().text("Labour");
+                    try {
+                        slide2Group.select(".party-label").transition().text("Labour");
+                    } catch (e) {
+                        //pass
+                    }
+
+                    d3.selectAll("#timeline canvas").transition().duration(500).style("opacity", 0).on("end", function () {
+                        // Clear canvas
+                        context.clearRect(0, 0, width + margin.left + margin.right, height + margin.bottom + margin.top);
+                        d3.select(this).style("display", "none");
+                    });
 
                     y.domain([0, 100]);
                     yAxis = d3.axisRight(y).tickFormat(function (d) {
@@ -3666,7 +3727,7 @@ function handleStepEnter(response) {
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(50));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -3676,9 +3737,13 @@ function handleStepEnter(response) {
                     total_women_mps_area.y1(function (d) {
                         return y(d.labour_women_pct);
                     });
-                    total_women_mps_path_area.transition().attr("d", total_women_mps_area);
+                    total_women_mps_path_area.transition().attr("d", total_women_mps_area).style("opacity", 1);
 
-                    d3.select(".women-label").style("fill", colors["Labour"]);
+                    d3.select(".women-label").style("fill", colors["Labour"]).style("opacity", 1);
+
+                    d3.select(".men-label").style("opacity", 1);
+
+                    d3.select(".i5050-label").style("opacity", 1);
                     break;
                 case 2:
                     // Conservatives
@@ -3686,7 +3751,17 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text("MPs in the Conservative Party");
 
-                    slide2Group.select(".party-label").transition().text("Conservative");
+                    try {
+                        slide2Group.select(".party-label").transition().text("Conservative");
+                    } catch (e) {
+                        //pass
+                    }
+
+                    d3.selectAll("#timeline canvas").transition().duration(500).style("opacity", 0).on("end", function () {
+                        // Clear canvas
+                        context.clearRect(0, 0, width + margin.left + margin.right, height + margin.bottom + margin.top);
+                        d3.select(this).style("display", "none");
+                    });
 
                     y.domain([0, 100]);
                     yAxis = d3.axisRight(y).tickFormat(function (d) {
@@ -3703,7 +3778,7 @@ function handleStepEnter(response) {
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(50));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -3713,9 +3788,9 @@ function handleStepEnter(response) {
                     total_women_mps_area.y1(function (d) {
                         return y(d.conservative_women_pct);
                     });
-                    total_women_mps_path_area.transition().attr("d", total_women_mps_area);
+                    total_women_mps_path_area.transition().attr("d", total_women_mps_area).style("opacity", 1);
 
-                    d3.select(".women-label").style("fill", colors["Conservative"]);
+                    d3.select(".women-label").style("fill", colors["Conservative"]).style("opacity", 1);
                     break;
                 case 3:
                     // Lib Dems & SNP
@@ -3723,7 +3798,17 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text(isMobile ? "MPs in the Lib Dems and SNP" : "MPs in the Liberal Democrats and Scottish National Party");
 
-                    slide2Group.select(".party-label").transition().text("Lib Dem/SNP");
+                    try {
+                        slide2Group.select(".party-label").transition().text("Lib Dem/SNP");
+                    } catch (e) {
+                        //pass
+                    }
+
+                    d3.selectAll("#timeline canvas").transition().duration(500).style("opacity", 0).on("end", function () {
+                        // Clear canvas
+                        context.clearRect(0, 0, width + margin.left + margin.right, height + margin.bottom + margin.top);
+                        d3.select(this).style("display", "none");
+                    });
 
                     y.domain([0, 100]);
                     yAxis = d3.axisRight(y).tickFormat(function (d) {
@@ -3740,7 +3825,7 @@ function handleStepEnter(response) {
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(50));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -3750,9 +3835,9 @@ function handleStepEnter(response) {
                     total_women_mps_area.y1(function (d) {
                         return y(d.lib_snp_women_pct);
                     });
-                    total_women_mps_path_area.transition().attr("d", total_women_mps_area);
+                    total_women_mps_path_area.transition().attr("d", total_women_mps_area).style("opacity", 1);
 
-                    d3.select(".women-label").style("fill", colors["LD"]);
+                    d3.select(".women-label").style("fill", colors["LD"]).style("opacity", 1);
                     break;
                 case 4:
                     // All MPs again
@@ -3760,7 +3845,16 @@ function handleStepEnter(response) {
 
                     chartTitle.transition().text("MPs in the House of Commons");
 
-                    slide2Group.select(".party-label").transition().text("");
+                    try {
+                        slide2Group.select(".party-label").transition().text("");
+                    } catch (e) {
+                        //pass
+                    }
+
+                    d3.selectAll("#timeline canvas").style("opacity", 0).style("display", "none");
+
+                    // Clear canvas
+                    context.clearRect(0, 0, width + margin.left + margin.right, height + margin.bottom + margin.top);
 
                     y.domain([0, 100]);
                     gY.transition().call(yAxis);
@@ -3774,7 +3868,7 @@ function handleStepEnter(response) {
                     half_max_mps_line.y(y(50));
                     half_max_mps_path.transition().attr("d", half_max_mps_line);
 
-                    half_max_mps_line_smooth.y(y(50));
+                    half_max_mps_line_smooth.y(y(51));
                     text_path_50_50.transition().attr("d", half_max_mps_line_smooth);
 
                     total_women_mps_line.y(function (d) {
@@ -3784,9 +3878,9 @@ function handleStepEnter(response) {
                     total_women_mps_area.y1(function (d) {
                         return y(d.women_pct);
                     });
-                    total_women_mps_path_area.transition().attr("d", total_women_mps_area);
+                    total_women_mps_path_area.transition().attr("d", total_women_mps_area).style("opacity", 1);
 
-                    d3.select(".women-label").style("fill", colors["Male"]);
+                    d3.select(".women-label").style("fill", colors["Male"]).style("opacity", 1);
                     break;
             }
 
@@ -3809,7 +3903,11 @@ function handleStepEnter(response) {
             d3.select("#slide4").style("display", "none");
 
             // Stop previous annotation timer
-            annotate_timer.stop();
+            try {
+                annotate_timer.stop();
+            } catch (e) {
+                //pass
+            }
 
             switch (new_step) {
                 case 0:
