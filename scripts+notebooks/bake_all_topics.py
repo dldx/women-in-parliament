@@ -6,7 +6,7 @@ from functools import reduce
 from multiprocessing import Pool
 
 # Get all topics
-topic_fractions = pd.read_csv("mp_topic_fraction.csv")
+topic_fractions = pd.read_csv("../data/mp_topic_fraction.csv")
 topics = topic_fractions.columns[5:]
 
 def bake_collision(topic):

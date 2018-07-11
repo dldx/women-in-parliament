@@ -26,7 +26,7 @@ var y = d3.scaleLinear()
     .domain([0, 0.3])
     .range([height, 0]);
 
-fs.readFile("mp_topic_fraction.csv", "utf-8", function (error, data) {
+fs.readFile("../data/mp_topic_fraction.csv", "utf-8", function (error, data) {
     if (error) throw error;
     data = d3.csvParse(data)
     // Convert wide data to long
